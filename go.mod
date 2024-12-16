@@ -1,1 +1,3 @@
-module Итоговое_задание_Go
+module github.com/Cool-Andrey/Calculating
+
+go 1.23.1

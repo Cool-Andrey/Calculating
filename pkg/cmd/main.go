@@ -1,7 +1,8 @@
 package main
 
-import "fmt"
+import "github.com/Cool-Andrey/Calculating/pkg/internal/application"
 
 func main() {
-	fmt.Println("Hello World")
+	app := application.New()
+	app.RunServer()
 }
