@@ -1,4 +1,4 @@
-package Calc
+package calc
 
 import (
 	"fmt"
@@ -42,10 +42,10 @@ func countOp(expression string) bool {
 
 func Calc(expression string) (float64, error) {
 	if !right_string(expression) {
-		return 0.0, fmt.Errorf("Неправильное количество скобок")
+		return 0.0, ErrInvalidBracket
 	}
 	if !countOp(expression) {
-		return 0.0, fmt.Errorf("Неправильное количество оперантов или чисел")
+		return 0.0, ErrInvalidOperands
 	}
 	expression = strings.ReplaceAll(expression, " ", "")
 	expression = infixToPostfix(expression)
@@ -68,13 +68,13 @@ func Calc(expression string) (float64, error) {
 			stack = stack[:len(stack)-2]
 			stack = append(stack, float64(v_1*v_2))
 		case '/':
-			v_1 := float64(stack[len(stack)-1])
-			v_2 := float64(stack[len(stack)-2])
+			v_1 := float64(stack[len(stack)-2])
+			v_2 := float64(stack[len(stack)-1])
 			r_1 := float64(v_1)
 			r_2 := float64(v_2)
 			stack = stack[:len(stack)-2]
 			if v_2 == 0 {
-				return 0.0, fmt.Errorf("Деление на 0!")
+				return 0.0, ErrDivByZero
 			}
 			stack = append(stack, float64(r_2/r_1))
 		default:
@@ -118,4 +118,11 @@ func infixToPostfix(expression string) string {
 		stack = stack[:len(stack)-1]
 	}
 	return postfix
+}
+
+func main() {
+	var expression string
+	fmt.Scan(&expression)
+	val, err := Calc(expression)
+	fmt.Println(val, err)
 }
