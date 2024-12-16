@@ -41,6 +41,12 @@ func TestCalc(t *testing.T) {
 			expected_num: 0,
 			expected_err: ErrDivByZero,
 		},
+		{
+			name:         "with double digit numbers",
+			expression:   "22*3",
+			expected_num: 66,
+			expected_err: nil,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

@@ -1,7 +1,6 @@
 package calc
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"unicode"
@@ -23,13 +22,13 @@ func right_string(s string) bool {
 	return len(stack) == 0
 }
 
-func countOp(expression string) bool {
+func countOp(expression []string) bool {
 	op := 0
 	numbers := 0
 	for _, val := range expression {
-		if unicode.IsDigit(val) {
+		if _, err := strconv.ParseFloat(val, 64); err == nil {
 			numbers++
-		} else if val == '+' || val == '-' || val == '*' || val == '/' {
+		} else if val == "+" || val == "-" || val == "*" || val == "/" {
 			op++
 		}
 	}
@@ -40,34 +39,55 @@ func countOp(expression string) bool {
 	}
 }
 
+func tokenize(expression string) []string {
+	var tokens []string
+	token := ""
+	for _, r := range expression {
+		if unicode.IsDigit(r) || r == '.' {
+			token += string(r)
+		} else {
+			if len(token) > 0 {
+				tokens = append(tokens, token)
+				token = ""
+			}
+			tokens = append(tokens, string(r))
+		}
+	}
+	if len(token) > 0 {
+		tokens = append(tokens, token)
+	}
+	return tokens
+}
+
 func Calc(expression string) (float64, error) {
 	if !right_string(expression) {
 		return 0.0, ErrInvalidBracket
 	}
-	if !countOp(expression) {
+	expression = strings.ReplaceAll(expression, " ", "")
+	tokens := tokenize(expression)
+	tokens = infixToPostfix(tokens)
+	if !countOp(tokens) {
 		return 0.0, ErrInvalidOperands
 	}
-	expression = strings.ReplaceAll(expression, " ", "")
-	expression = infixToPostfix(expression)
 	var stack []float64
-	for _, val := range expression {
+	for _, val := range tokens {
 		switch val {
-		case '+':
+		case "+":
 			v_1 := float64(stack[len(stack)-1])
 			v_2 := float64(stack[len(stack)-2])
 			stack = stack[:len(stack)-2]
 			stack = append(stack, float64(v_1+v_2))
-		case '-':
+		case "-":
 			v_1 := float64(stack[len(stack)-1])
 			v_2 := float64(stack[len(stack)-2])
 			stack = stack[:len(stack)-2]
 			stack = append(stack, float64(v_1-v_2))
-		case '*':
+		case "*":
 			v_1 := float64(stack[len(stack)-1])
 			v_2 := float64(stack[len(stack)-2])
 			stack = stack[:len(stack)-2]
 			stack = append(stack, float64(v_1*v_2))
-		case '/':
+		case "/":
 			v_1 := float64(stack[len(stack)-2])
 			v_2 := float64(stack[len(stack)-1])
 			r_1 := float64(v_1)
@@ -85,44 +105,37 @@ func Calc(expression string) (float64, error) {
 	return float64(stack[len(stack)-1]), nil
 }
 
-func infixToPostfix(expression string) string {
-	stack := make([]rune, 0)
-	postfix := ""
+func infixToPostfix(expression []string) []string {
+	stack := make([]string, 0)
+	postfix := []string{}
 	for _, r := range expression {
 		switch r {
-		case '(':
+		case "(":
 			stack = append(stack, r)
-		case ')':
-			for len(stack) > 0 && stack[len(stack)-1] != '(' {
-				postfix += string(stack[len(stack)-1])
+		case ")":
+			for len(stack) > 0 && stack[len(stack)-1] != "(" {
+				postfix = append(postfix, stack[len(stack)-1])
 				stack = stack[:len(stack)-1]
 			}
 			if len(stack) > 0 {
 				stack = stack[:len(stack)-1] // Удаление '('
 			}
 
-		case '+', '-':
-			for len(stack) > 0 && (stack[len(stack)-1] == '*' || stack[len(stack)-1] == '/') {
-				postfix += string(stack[len(stack)-1])
+		case "+", "-":
+			for len(stack) > 0 && (stack[len(stack)-1] == "*" || stack[len(stack)-1] == "/") {
+				postfix = append(postfix, stack[len(stack)-1])
 				stack = stack[:len(stack)-1]
 			}
 			stack = append(stack, r)
-		case '*', '/':
+		case "*", "/":
 			stack = append(stack, r)
 		default:
-			postfix += string(r)
+			postfix = append(postfix, r)
 		}
 	}
 	for len(stack) > 0 {
-		postfix += string(stack[len(stack)-1])
+		postfix = append(postfix, stack[len(stack)-1])
 		stack = stack[:len(stack)-1]
 	}
 	return postfix
-}
-
-func main() {
-	var expression string
-	fmt.Scan(&expression)
-	val, err := Calc(expression)
-	fmt.Println(val, err)
 }
