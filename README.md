@@ -9,14 +9,21 @@
 
 На выход тоже json вида {"result" : "число с плавающей точкой"} либо {"error" : "текст ошибки"}
 
+Код 200 - всё хорошо и выражение посчиталось
+
+Код 422 - ошибка в записи
+
+Код 500 - ошибка в форматировании json'а или неизвестная ошибка при счёте выражения
+
 Пример обращения через curl:
+
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type: application/json' --data '{"expression": "2+2*2"}'
 
 Ответ будет таким:{"result":"14.00"} и код 200
 
 Если выражение будет с ошибкой:
 
-curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type: application/json' --data '{"expression": "2+2*2"}'
+curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type: application/json' --data '{"expression": "2++2*2"}'
 
 Ответ будет таким:{"error":"Товарищ пользователь! Проверьте количество операндов(+,-,/,*), их порядок и проверьте что нет буков"} и код 422
 
@@ -39,7 +46,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type:
 
 Как указать это значение?
 
-Linux/MacOs
+Linux/Macos
 
 В консоли пишем export PORT=нужный вам порт. Например export PORT=4567
 
