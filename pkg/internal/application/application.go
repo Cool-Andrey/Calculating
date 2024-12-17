@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Cool-Andrey/Calculating/pkg/calc"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -49,9 +50,20 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 	request := new(Request)
 	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err != nil && err != io.EOF {
+		w.WriteHeader(500)
 		log.Printf("Ошибка чтения json: %s", err)
+		errj := "Что-то пошло не так"
+		res := ResultBad{Err: errj}
+		jsonBytes, _ := json.Marshal(res)
+		fmt.Fprint(w, string(jsonBytes))
+		return
+	} else if err == io.EOF {
+		w.WriteHeader(422)
+		errj := "Пустой json!"
+		res := ResultBad{Err: errj}
+		jsonBytes, _ := json.Marshal(res)
+		fmt.Fprint(w, string(jsonBytes))
 		return
 	} else {
 		log.Printf("Прочитал: %s", request.Expression)
@@ -72,8 +84,8 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Ошибка счёта: %s", calc.ErrDivByZero)
 		} else {
 			w.WriteHeader(500)
-			errJ = errors.New("Internal server error")
-			log.Printf("Неизвестная ошибка счёта")
+			errJ = errors.New("Что-то пошло не так")
+			log.Printf("Неизвестная ошибка счёта: %s", err.Error())
 		}
 		errj := errJ.Error()
 		res := ResultBad{Err: errj}
@@ -82,12 +94,10 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusOK)
 		res1 := Result{Res: fmt.Sprintf("%.2f", result)}
-		log.Println(res1)
 		jsonBytes, err := json.Marshal(res1)
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Println(string(jsonBytes))
 		fmt.Fprint(w, string(jsonBytes))
 		log.Printf("Посчитал: %.2f", result)
 	}
@@ -95,5 +105,6 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *Application) RunServer() error {
 	http.HandleFunc("/api/v1/calculate", CalcHandler)
+	fmt.Printf("Сервер слушается на порту: %s\n", a.config.Addr)
 	return http.ListenAndServe(":"+a.config.Addr, nil)
 }
