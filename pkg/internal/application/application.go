@@ -51,17 +51,18 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil && err != io.EOF {
-		w.WriteHeader(500)
+		w.WriteHeader(422)
 		log.Printf("Ошибка чтения json: %s", err)
-		errj := "Что-то пошло не так"
-		res := ResultBad{Err: errj}
+		errj := calc.ErrInvalidJson
+		res := ResultBad{Err: errj.Error()}
 		jsonBytes, _ := json.Marshal(res)
 		fmt.Fprint(w, string(jsonBytes))
 		return
 	} else if err == io.EOF {
 		w.WriteHeader(422)
-		errj := "Пустой json!"
-		res := ResultBad{Err: errj}
+		errj := calc.ErrEmptyJson
+		res := ResultBad{Err: errj.Error()}
+		log.Println("Пустой json!")
 		jsonBytes, _ := json.Marshal(res)
 		fmt.Fprint(w, string(jsonBytes))
 		return
@@ -94,10 +95,7 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusOK)
 		res1 := Result{Res: fmt.Sprintf("%.2f", result)}
-		jsonBytes, err := json.Marshal(res1)
-		if err != nil {
-			log.Fatal(err)
-		}
+		jsonBytes, _ := json.Marshal(res1)
 		fmt.Fprint(w, string(jsonBytes))
 		log.Printf("Посчитал: %.2f", result)
 	}
