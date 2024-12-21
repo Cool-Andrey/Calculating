@@ -18,20 +18,23 @@
 
 Пример обращения через curl:
 
+```
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type: application/json' --data '{"expression": "2+2*2"}'
-
+```
 Ответ будет таким: {"result":"14.00"} и код 200
 
 Если выражение будет с ошибкой:
 
+```
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type: application/json' --data '{"expression": "2++2*2"}'
-
+```
 Ответ будет таким: {"error":"Товарищ пользователь! Проверьте количество операндов(+,-,/,*), их порядок и проверьте что нет буков"} и код 422
 
 Ещё пример с ошибкой:
 
+```
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type: application/json' --data '{"expression": ""}'
-
+```
 Ответ будет таким: {"error":"Пустое выражение!"} и код 422
 
 Сам по себе сервер логирует:
@@ -47,7 +50,11 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type:
 
 Linux/Macos
 
-В консоли пишем ```export PORT=нужный вам порт.``` 
+В консоли пишем
+```
+export PORT=нужный вам порт.
+``` 
+
 Например 
 ```Console
 export PORT=4567
