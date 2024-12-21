@@ -21,7 +21,7 @@
 ```
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type: application/json' --data '{"expression": "2+2*2"}'
 ```
-Ответ будет таким: {"result":"14.00"} и код 200
+Ответ будет таким: {"result":"6.00"} и код 200
 
 Если выражение будет с ошибкой:
 
