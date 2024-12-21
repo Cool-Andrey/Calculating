@@ -48,7 +48,6 @@ type ResultBad struct {
 
 func CalcHandler(w http.ResponseWriter, r *http.Request) {
 	request := new(Request)
-	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil && err != io.EOF {
 		w.WriteHeader(422)
