@@ -66,6 +66,9 @@ func Calc(expression string) (float64, error) {
 	expression = strings.ReplaceAll(expression, " ", "")
 	tokens := tokenize(expression)
 	tokens = infixToPostfix(tokens)
+	if expression == "" || expression == " " {
+		return 0.0, ErrEmptyExpression
+	}
 	if !countOp(tokens) {
 		return 0.0, ErrInvalidOperands
 	}

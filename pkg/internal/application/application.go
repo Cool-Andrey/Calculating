@@ -83,6 +83,9 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 		} else if errors.Is(err, calc.ErrDivByZero) {
 			errJ = calc.ErrDivByZero
 			log.Printf("Ошибка счёта: %s", calc.ErrDivByZero)
+		} else if errors.Is(err, calc.ErrEmptyExpression) {
+			errJ = calc.ErrEmptyExpression
+			log.Printf("Ошибка счёта: %s", calc.ErrEmptyExpression)
 		} else {
 			w.WriteHeader(500)
 			errJ = errors.New("Что-то пошло не так")

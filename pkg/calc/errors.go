@@ -8,4 +8,5 @@ var (
 	ErrInvalidOperands = errors.New("Товарищ пользователь! Проверьте количество операндов(+,-,/,*), их порядок и проверьте что нет буков")
 	ErrInvalidJson     = errors.New("Товарищ пользователь! Проверьте правильность написания json'а")
 	ErrEmptyJson       = errors.New("Пустой json!")
+	ErrEmptyExpression = errors.New("Пустое выражение!")
 )
