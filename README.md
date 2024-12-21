@@ -47,23 +47,35 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' --header 'Content-Type:
 
 Linux/Macos
 
-В консоли пишем export PORT=нужный вам порт. Например export PORT=4567
+В консоли пишем ```export PORT=нужный вам порт.``` 
+Например 
+```Console
+export PORT=4567
+```
 
 Windows:
 
 Powershell(или консоль Goland, если пользуетесь им)
-
-\$env:PORT=нужный вам порт. Например $env:PORT=7865
-
+```PowerShell
+$env:PORT=нужный вам порт. 
+```
+Например 
+```PowerShell
+$env:PORT=7865
+```
 Cmd:
-
-set PORT=нужный вам порт. Например set PORT=5012
-
+```Cmd
+set PORT=нужный вам порт. 
+```
+Например
+```Cmd
+set PORT=5012
+```
 *Примечание: при запуске сервер напишет на котором порту прослушивается*
 
 
 Сам запуск прост. Переходим в директорию с проектом(не заходим в папку pkg!) и вводим:
-
+```Console
 go run ./pkg/cmd/main.go
-
+```
 Всё. Для завершения работы сервера нажмите ctrl + c
