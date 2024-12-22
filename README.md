@@ -87,3 +87,9 @@ set PORT=5012
 go run ./pkg/cmd/main.go
 ```
 Всё. Для завершения работы сервера нажмите ctrl + c
+
+Контакты: 
+
+Тг @maincraftmylive2 
+
+Почта: sbs469@mail.ru
