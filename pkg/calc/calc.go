@@ -59,9 +59,21 @@ func tokenize(expression string) []string {
 	return tokens
 }
 
+func IsLetter(s string) bool {
+	for _, r := range s {
+		if unicode.IsLetter(r) {
+			return true
+		}
+	}
+	return false
+}
+
 func Calc(expression string) (float64, error) {
 	if !right_string(expression) {
 		return 0.0, ErrInvalidBracket
+	}
+	if IsLetter(expression) {
+		return 0.0, ErrInvalidOperands
 	}
 	expression = strings.ReplaceAll(expression, " ", "")
 	tokens := tokenize(expression)
