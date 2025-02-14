@@ -9,4 +9,11 @@ var (
 	ErrInvalidJson     = errors.New("Товарищ пользователь! Проверьте правильность написания json'а")
 	ErrEmptyJson       = errors.New("Пустой json!")
 	ErrEmptyExpression = errors.New("Пустое выражение!")
+
+	ErrorMap = map[error]int{
+		ErrInvalidBracket:  422,
+		ErrInvalidOperands: 422,
+		ErrDivByZero:       422,
+		ErrEmptyExpression: 422,
+	}
 )
