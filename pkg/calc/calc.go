@@ -96,7 +96,7 @@ func Calc(expression string) (float64, error) {
 			v_1 := float64(stack[len(stack)-1])
 			v_2 := float64(stack[len(stack)-2])
 			stack = stack[:len(stack)-2]
-			stack = append(stack, float64(v_1-v_2))
+			stack = append(stack, float64(v_2-v_1))
 		case "*":
 			v_1 := float64(stack[len(stack)-1])
 			v_2 := float64(stack[len(stack)-2])
@@ -133,7 +133,7 @@ func infixToPostfix(expression []string) []string {
 				stack = stack[:len(stack)-1]
 			}
 			if len(stack) > 0 {
-				stack = stack[:len(stack)-1] // Удаление '('
+				stack = stack[:len(stack)-1]
 			}
 
 		case "+", "-":
