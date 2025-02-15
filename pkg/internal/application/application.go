@@ -1,10 +1,13 @@
 package application
 
 import (
-	"fmt"
-	"github.com/Cool-Andrey/Calculating/pkg/http/server/handler"
-	"net/http"
+	"context"
+	"github.com/Cool-Andrey/Calculating/pkg/http/server"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"log"
 	"os"
+	"os/signal"
 )
 
 type Config struct {
@@ -30,8 +33,28 @@ func New() *Application {
 	}
 }
 
-func (a *Application) RunServer() error {
-	http.HandleFunc("/api/v1/calculate", handler.CalcHandler)
-	fmt.Printf("Сервер слушается на порту: %s\n", a.config.Addr)
-	return http.ListenAndServe(":"+a.config.Addr, nil)
+func (a *Application) Run(ctx context.Context) {
+	logger := setupLogger()
+	defer logger.Sync()
+	shutdownFunc := server.Run(logger, a.config.Addr)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	<-c
+	cancel()
+	shutdownFunc(ctx)
+	return
+}
+
+func setupLogger() *zap.SugaredLogger {
+	config := zap.NewProductionConfig()
+	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	logger, err := config.Build()
+	if err != nil {
+		log.Fatalf("Да емаё! Логгер рухнул( Вот подробности: %s", err)
+	}
+	return logger.Sugar()
 }

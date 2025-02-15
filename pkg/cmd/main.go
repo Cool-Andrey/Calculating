@@ -1,8 +1,14 @@
 package main
 
-import "github.com/Cool-Andrey/Calculating/pkg/internal/application"
+import (
+	"context"
+	"github.com/Cool-Andrey/Calculating/pkg/internal/application"
+	"os"
+)
 
 func main() {
 	app := application.New()
-	app.RunServer()
+	ctx := context.Background()
+	app.Run(ctx)
+	os.Exit(0)
 }

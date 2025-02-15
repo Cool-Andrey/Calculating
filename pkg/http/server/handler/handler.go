@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Cool-Andrey/Calculating/pkg/calc"
+	"go.uber.org/zap"
 	"io"
-	"log"
 	"net/http"
 )
+
+type Decorator func(http.Handler) http.Handler
 
 type Request struct {
 	Expression string `json:"expression"`
@@ -22,12 +24,12 @@ type ResultBad struct {
 	Err string `json:"error"`
 }
 
-func CalcHandler(w http.ResponseWriter, r *http.Request) {
+func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) {
 	request := new(Request)
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil && err != io.EOF {
 		w.WriteHeader(422)
-		log.Printf("Ошибка чтения json: %s", err)
+		logger.Errorf("Ошибка чтения json: %v", err)
 		errj := calc.ErrInvalidJson
 		res := ResultBad{Err: errj.Error()}
 		jsonBytes, _ := json.Marshal(res)
@@ -37,12 +39,12 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(422)
 		errj := calc.ErrEmptyJson
 		res := ResultBad{Err: errj.Error()}
-		log.Println("Пустой json!")
+		logger.Error("Пустой json!")
 		jsonBytes, _ := json.Marshal(res)
 		fmt.Fprint(w, string(jsonBytes))
 		return
 	} else {
-		log.Printf("Прочитал: %s", request.Expression)
+		logger.Debugf("Прочитал: %s", request.Expression)
 	}
 
 	result, err := calc.Calc(request.Expression)
@@ -51,11 +53,11 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 		if statusCode, ok := calc.ErrorMap[err]; ok {
 			w.WriteHeader(statusCode)
 			errJ = err
-			log.Printf("Ошибка счёта: %v", err)
+			logger.Errorf("Ошибка счёта: %v", errJ)
 		} else {
 			w.WriteHeader(500)
 			errJ = errors.New("Что-то пошло не так")
-			log.Printf("Неизвестная ошибка счёта: %v", err)
+			logger.Errorf("Неизвестная ошибка счёта: %v", errJ)
 		}
 		res := ResultBad{Err: errJ.Error()}
 		jsonBytes, _ := json.Marshal(res)
@@ -65,6 +67,14 @@ func CalcHandler(w http.ResponseWriter, r *http.Request) {
 		res1 := Result{Res: fmt.Sprintf("%.2f", result)}
 		jsonBytes, _ := json.Marshal(res1)
 		fmt.Fprint(w, string(jsonBytes))
-		log.Printf("Посчитал: %.2f", result)
+		logger.Debugf("Посчитал: %.2f", result)
 	}
+}
+
+func Decorate(next http.Handler, ds ...Decorator) http.Handler {
+	res := next
+	for d := len(ds) - 1; d >= 0; d-- {
+		res = ds[d](res)
+	}
+	return res
 }
