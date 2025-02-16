@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"time"
 )
 
@@ -72,12 +73,38 @@ func setupLogger(newConfig string) *zap.SugaredLogger {
 		log.Fatal("Проверьте значение глобальной переменной MODE. Читай README")
 	}
 	config.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000)) // микросекунды с 3 знаками после запятой
+		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000))
 	}
 	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	logger, err := config.Build()
-	if err != nil {
-		log.Fatalf("Да емаё! Логгер рухнул( Вот подробности: %s", err)
+	configFile := zap.NewProductionConfig()
+	configFile.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000))
 	}
+	configFile.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	logDir := "log"
+	logName := "server.log"
+	logPath := filepath.Join(logDir, logName)
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
+		err = os.MkdirAll(logDir, 0777)
+		if err != nil {
+			log.Fatalf("Ошибка создания папки для хранения логов: %v", err)
+		}
+	}
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("Проблема с созданием/открытием файла лога: %v", err)
+	}
+	consoleCore := zapcore.NewCore(
+		zapcore.NewJSONEncoder(config.EncoderConfig),
+		zapcore.AddSync(os.Stdout),
+		config.Level,
+	)
+	fileCore := zapcore.NewCore(
+		zapcore.NewJSONEncoder(config.EncoderConfig),
+		zapcore.AddSync(file),
+		configFile.Level,
+	)
+	core := zapcore.NewTee(consoleCore, fileCore)
+	logger := zap.New(core)
 	return logger.Sugar()
 }
