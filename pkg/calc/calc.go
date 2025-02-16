@@ -111,7 +111,7 @@ func Calc(expression string) (float64, error) {
 			if v_2 == 0 {
 				return 0.0, ErrDivByZero
 			}
-			stack = append(stack, float64(r_2/r_1))
+			stack = append(stack, float64(r_1/r_2))
 		default:
 			val1, _ := strconv.ParseFloat(string(val), 64)
 			stack = append(stack, float64(val1))
