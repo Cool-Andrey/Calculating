@@ -2,12 +2,14 @@ package application
 
 import (
 	"context"
+	"fmt"
 	"github.com/Cool-Andrey/Calculating/pkg/http/server"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"log"
 	"os"
 	"os/signal"
+	"time"
 )
 
 type Config struct {
@@ -65,12 +67,9 @@ func setupLogger(newConfig string) *zap.SugaredLogger {
 	} else {
 		log.Fatal("Проверьте значение глобальной переменной MODE. Читай README")
 	}
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	//config.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
-	//	enc.AppendString(fmt.Sprintf("%.3fµs", float64(d.Nanoseconds())/1000)) // микросекунды с 3 знаками после запятой
-	//	//enc.AppendString(fmt.Sprintf("%dns", d.Nanoseconds()))  // чисто наносекунды
-	//	//enc.AppendString(fmt.Sprintf("%.3fns", float64(d))) // duration в формате float с указанием кол-ва знаков
-	//}
+	config.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000)) // микросекунды с 3 знаками после запятой
+	}
 	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	logger, err := config.Build()
 	if err != nil {
