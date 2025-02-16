@@ -1,9 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"github.com/Cool-Andrey/Calculating/pkg/http/server/handler"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"time"
 )
@@ -41,12 +43,19 @@ func Run(logger *zap.SugaredLogger, addr string) func(ctx context.Context) error
 func loggingMiddleware(logger *zap.SugaredLogger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			r.Body.Close()
+			if err != nil {
+				logger.Errorf("Ошибка чтения тела из логера: %v", err)
+			}
+			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 			start := time.Now()
 			next.ServeHTTP(w, r)
 			duration := time.Since(start)
 			logger.Infow("HTTP запрос",
 				zap.String("Метод", r.Method),
 				zap.String("Путь", r.URL.String()),
+				zap.String("Тело", string(bodyBytes)),
 				zap.Duration("Время выполнения", duration),
 			)
 		})

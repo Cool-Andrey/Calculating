@@ -12,6 +12,7 @@ import (
 
 type Config struct {
 	Addr string
+	Stat string
 }
 
 func ConfigFromEnv() *Config {
@@ -19,6 +20,10 @@ func ConfigFromEnv() *Config {
 	config.Addr = os.Getenv("PORT")
 	if config.Addr == "" {
 		config.Addr = "8080"
+	}
+	config.Stat = os.Getenv("MODE")
+	if config.Stat == "" {
+		config.Stat = "Dev"
 	}
 	return config
 }
@@ -34,7 +39,7 @@ func New() *Application {
 }
 
 func (a *Application) Run(ctx context.Context) {
-	logger := setupLogger()
+	logger := setupLogger(a.config.Stat)
 	defer logger.Sync()
 	shutdownFunc := server.Run(logger, a.config.Addr)
 	c := make(chan os.Signal, 1)
@@ -46,11 +51,26 @@ func (a *Application) Run(ctx context.Context) {
 	<-c
 	cancel()
 	shutdownFunc(ctx)
+	logger.Info("Сервер закрыт.")
 	return
 }
 
-func setupLogger() *zap.SugaredLogger {
-	config := zap.NewProductionConfig()
+func setupLogger(newConfig string) *zap.SugaredLogger {
+	var config zap.Config
+	if newConfig == "Dev" {
+		config = zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder // А чо, красиво жить не запретишь)
+	} else if newConfig == "Prod" {
+		config = zap.NewProductionConfig()
+	} else {
+		log.Fatal("Проверьте значение глобальной переменной MODE. Читай README")
+	}
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	//config.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
+	//	enc.AppendString(fmt.Sprintf("%.3fµs", float64(d.Nanoseconds())/1000)) // микросекунды с 3 знаками после запятой
+	//	//enc.AppendString(fmt.Sprintf("%dns", d.Nanoseconds()))  // чисто наносекунды
+	//	//enc.AppendString(fmt.Sprintf("%.3fns", float64(d))) // duration в формате float с указанием кол-ва знаков
+	//}
 	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	logger, err := config.Build()
 	if err != nil {

@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/Cool-Andrey/Calculating/pkg/calc"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -20,6 +23,16 @@ type bad_req struct {
 
 type reqS struct {
 	Req string `json:"expression"`
+}
+
+func setupLogger() *zap.SugaredLogger {
+	config := zap.NewProductionConfig()
+	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	logger, err := config.Build()
+	if err != nil {
+		log.Fatalf("Да емаё! Логгер рухнул( Вот подробности: %s", err)
+	}
+	return logger.Sugar()
 }
 
 func TestCalcHandler(t *testing.T) {
@@ -82,8 +95,9 @@ func TestCalcHandler(t *testing.T) {
 		}
 		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBuffer(jsonBytes))
 		req.Header.Set("Content-Type", "application/json")
-		handler := http.HandlerFunc(CalcHandler)
-		handler.ServeHTTP(w, req)
+		logger := setupLogger()
+		defer logger.Sync()
+		CalcHandler(w, req, logger)
 		if w.Code != test.expected_code {
 			t.Errorf("Ожидал код: %d Получил код: %d", test.expected_code, w.Code)
 		}

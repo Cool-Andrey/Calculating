@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"net/http"
+	"time"
 )
 
 type Decorator func(http.Handler) http.Handler
@@ -69,6 +70,7 @@ func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogg
 		fmt.Fprint(w, string(jsonBytes))
 		logger.Debugf("Посчитал: %.2f", result)
 	}
+	time.Sleep(1)
 }
 
 func Decorate(next http.Handler, ds ...Decorator) http.Handler {
