@@ -40,7 +40,7 @@ func New() *Application {
 	}
 }
 
-func (a *Application) Run(ctx context.Context) {
+func (a *Application) Run(ctx context.Context) int {
 	logger := setupLogger(a.config.Stat)
 	defer logger.Sync()
 	shutdownFunc := server.Run(logger, a.config.Addr)
@@ -52,9 +52,13 @@ func (a *Application) Run(ctx context.Context) {
 
 	<-c
 	cancel()
-	shutdownFunc(ctx)
+	err := shutdownFunc(ctx)
+	if err != nil {
+		logger.Errorf("Ошибка при закрытии сервера: %v", err)
+		return 1
+	}
 	logger.Info("Сервер закрыт.")
-	return
+	return 0
 }
 
 func setupLogger(newConfig string) *zap.SugaredLogger {

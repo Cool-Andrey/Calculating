@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"github.com/Cool-Andrey/Calculating/pkg/internal/application"
+	"github.com/Cool-Andrey/Calculating/internal/application"
 	"os"
 )
 
 func main() {
 	app := application.New()
 	ctx := context.Background()
-	app.Run(ctx)
-	os.Exit(0)
+	os.Exit(app.Run(ctx))
 }
