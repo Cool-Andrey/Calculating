@@ -13,9 +13,15 @@ import (
 	"time"
 )
 
+type Mode struct {
+	Console string
+	File    string
+	DelFile string
+}
+
 type Config struct {
 	Addr string
-	Stat string
+	Mode Mode
 }
 
 func ConfigFromEnv() *Config {
@@ -24,9 +30,17 @@ func ConfigFromEnv() *Config {
 	if config.Addr == "" {
 		config.Addr = "8080"
 	}
-	config.Stat = os.Getenv("MODE")
-	if config.Stat == "" {
-		config.Stat = "Dev"
+	config.Mode.Console = os.Getenv("MODE_CONSOLE")
+	if config.Mode.Console == "" {
+		config.Mode.Console = "Dev"
+	}
+	config.Mode.File = os.Getenv("MODE_FILE")
+	if config.Mode.File == "" {
+		config.Mode.File = "Prod"
+	}
+	config.Mode.DelFile = os.Getenv("DEL_FILE")
+	if config.Mode.DelFile == "" {
+		config.Mode.DelFile = "No"
 	}
 	return config
 }
@@ -42,7 +56,7 @@ func New() *Application {
 }
 
 func (a *Application) Run(ctx context.Context) int {
-	logger := setupLogger(a.config.Stat)
+	logger := setupLogger(a.config.Mode)
 	defer logger.Sync()
 	shutdownFunc := server.Run(logger, a.config.Addr)
 	c := make(chan os.Signal, 1)
@@ -62,21 +76,32 @@ func (a *Application) Run(ctx context.Context) int {
 	return 0
 }
 
-func setupLogger(newConfig string) *zap.SugaredLogger {
-	var config zap.Config
-	if newConfig == "Dev" {
+func setupLogger(newConfig Mode) *zap.SugaredLogger {
+	var config, configFile zap.Config
+	var consoleEncoder, fileEncoder zapcore.Encoder
+	if newConfig.Console == "Dev" {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder // А чо, красиво жить не запретишь)
-	} else if newConfig == "Prod" {
+		consoleEncoder = zapcore.NewConsoleEncoder(config.EncoderConfig)
+	} else if newConfig.Console == "Prod" {
 		config = zap.NewProductionConfig()
+		consoleEncoder = zapcore.NewJSONEncoder(config.EncoderConfig)
 	} else {
-		log.Fatal("Проверьте значение глобальной переменной MODE. Читай README")
+		log.Fatal("Проверьте значение глобальной переменной MODE_CONSOLE. Читай README")
 	}
 	config.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000))
 	}
 	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	configFile := zap.NewProductionConfig()
+	if newConfig.File == "Dev" {
+		configFile = zap.NewDevelopmentConfig()
+		fileEncoder = zapcore.NewConsoleEncoder(configFile.EncoderConfig)
+	} else if newConfig.File == "Prod" {
+		configFile = zap.NewProductionConfig()
+		fileEncoder = zapcore.NewJSONEncoder(configFile.EncoderConfig)
+	} else {
+		log.Fatal("Проверьте значение глобальной переменной MODE_FILE. Чита README")
+	}
 	configFile.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000))
 	}
@@ -90,17 +115,23 @@ func setupLogger(newConfig string) *zap.SugaredLogger {
 			log.Fatalf("Ошибка создания папки для хранения логов: %v", err)
 		}
 	}
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND, 0666)
+	var permision int
+	if newConfig.DelFile == "No" {
+		permision = os.O_APPEND
+	} else if newConfig.DelFile == "Yes" {
+		permision = os.O_TRUNC
+	}
+	file, err := os.OpenFile(logPath, os.O_CREATE|permision, 0666)
 	if err != nil {
 		log.Fatalf("Проблема с созданием/открытием файла лога: %v", err)
 	}
 	consoleCore := zapcore.NewCore(
-		zapcore.NewJSONEncoder(config.EncoderConfig),
+		consoleEncoder,
 		zapcore.AddSync(os.Stdout),
 		config.Level,
 	)
 	fileCore := zapcore.NewCore(
-		zapcore.NewJSONEncoder(config.EncoderConfig),
+		fileEncoder,
 		zapcore.AddSync(file),
 		configFile.Level,
 	)
