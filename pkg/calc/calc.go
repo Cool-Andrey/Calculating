@@ -6,7 +6,7 @@ import (
 	"unicode"
 )
 
-func right_string(s string) bool {
+func Right_string(s string) bool {
 	stack := []rune{}
 	for _, c := range s {
 		switch c {
@@ -22,7 +22,7 @@ func right_string(s string) bool {
 	return len(stack) == 0
 }
 
-func countOp(expression []string) bool {
+func CountOp(expression []string) bool {
 	op := 0
 	numbers := 0
 	for _, val := range expression {
@@ -39,7 +39,7 @@ func countOp(expression []string) bool {
 	}
 }
 
-func tokenize(expression string) []string {
+func Tokenize(expression string) []string {
 	var tokens []string
 	token := ""
 	for _, r := range expression {
@@ -69,19 +69,19 @@ func IsLetter(s string) bool {
 }
 
 func Calc(expression string) (float64, error) {
-	if !right_string(expression) {
+	if !Right_string(expression) {
 		return 0.0, ErrInvalidBracket
 	}
 	if IsLetter(expression) {
 		return 0.0, ErrInvalidOperands
 	}
 	expression = strings.ReplaceAll(expression, " ", "")
-	tokens := tokenize(expression)
-	tokens = infixToPostfix(tokens)
+	tokens := Tokenize(expression)
+	tokens = InfixToPostfix(tokens)
 	if expression == "" || expression == " " {
 		return 0.0, ErrEmptyExpression
 	}
-	if !countOp(tokens) {
+	if !CountOp(tokens) {
 		return 0.0, ErrInvalidOperands
 	}
 	var stack []float64
@@ -120,7 +120,7 @@ func Calc(expression string) (float64, error) {
 	return float64(stack[len(stack)-1]), nil
 }
 
-func infixToPostfix(expression []string) []string {
+func InfixToPostfix(expression []string) []string {
 	stack := make([]string, 0)
 	postfix := []string{}
 	for _, r := range expression {

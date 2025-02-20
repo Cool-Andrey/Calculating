@@ -2,26 +2,16 @@ package application
 
 import (
 	"context"
-	"fmt"
-	"github.com/Cool-Andrey/Calculating/pkg/http/server"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"log"
+	"github.com/Cool-Andrey/Calculating/internal/config"
+	"github.com/Cool-Andrey/Calculating/internal/http/server"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"time"
 )
 
-type Mode struct {
-	Console string
-	File    string
-	DelFile string
-}
-
+// TODO: НЕ ЗАБУДЬ ПЕРЕПИСАТЬ README
 type Config struct {
 	Addr string
-	Mode Mode
+	Mode config.Mode
 }
 
 func ConfigFromEnv() *Config {
@@ -56,7 +46,7 @@ func New() *Application {
 }
 
 func (a *Application) Run(ctx context.Context) int {
-	logger := setupLogger(a.config.Mode)
+	logger := config.SetupLogger(a.config.Mode)
 	defer logger.Sync()
 	shutdownFunc := server.Run(logger, a.config.Addr)
 	c := make(chan os.Signal, 1)
@@ -74,68 +64,4 @@ func (a *Application) Run(ctx context.Context) int {
 	}
 	logger.Info("Сервер закрыт.")
 	return 0
-}
-
-func setupLogger(newConfig Mode) *zap.SugaredLogger {
-	var config, configFile zap.Config
-	var consoleEncoder, fileEncoder zapcore.Encoder
-	if newConfig.Console == "Dev" {
-		config = zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder // А чо, красиво жить не запретишь)
-		consoleEncoder = zapcore.NewConsoleEncoder(config.EncoderConfig)
-	} else if newConfig.Console == "Prod" {
-		config = zap.NewProductionConfig()
-		consoleEncoder = zapcore.NewJSONEncoder(config.EncoderConfig)
-	} else {
-		log.Fatal("Проверьте значение глобальной переменной MODE_CONSOLE. Читай README")
-	}
-	config.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000))
-	}
-	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	if newConfig.File == "Dev" {
-		configFile = zap.NewDevelopmentConfig()
-		fileEncoder = zapcore.NewConsoleEncoder(configFile.EncoderConfig)
-	} else if newConfig.File == "Prod" {
-		configFile = zap.NewProductionConfig()
-		fileEncoder = zapcore.NewJSONEncoder(configFile.EncoderConfig)
-	} else {
-		log.Fatal("Проверьте значение глобальной переменной MODE_FILE. Чита README")
-	}
-	configFile.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000))
-	}
-	configFile.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	logDir := "log"
-	logName := "server.log"
-	logPath := filepath.Join(logDir, logName)
-	if _, err := os.Stat(logPath); os.IsNotExist(err) {
-		err = os.MkdirAll(logDir, 0777)
-		if err != nil {
-			log.Fatalf("Ошибка создания папки для хранения логов: %v", err)
-		}
-	}
-	var permision int
-	if newConfig.DelFile == "No" {
-		permision = os.O_APPEND
-	} else if newConfig.DelFile == "Yes" {
-		permision = os.O_TRUNC
-	}
-	file, err := os.OpenFile(logPath, os.O_CREATE|permision, 0666)
-	if err != nil {
-		log.Fatalf("Проблема с созданием/открытием файла лога: %v", err)
-	}
-	consoleCore := zapcore.NewCore(
-		consoleEncoder,
-		zapcore.AddSync(os.Stdout),
-		config.Level,
-	)
-	fileCore := zapcore.NewCore(
-		fileEncoder,
-		zapcore.AddSync(file),
-		configFile.Level,
-	)
-	core := zapcore.NewTee(consoleCore, fileCore)
-	logger := zap.New(core)
-	return logger.Sugar()
 }

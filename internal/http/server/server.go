@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
-	"github.com/Cool-Andrey/Calculating/pkg/http/server/handler"
+	"github.com/Cool-Andrey/Calculating/internal/http/server/handler"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
