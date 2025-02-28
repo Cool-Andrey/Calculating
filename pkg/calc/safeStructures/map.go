@@ -1,6 +1,8 @@
-package safeMap
+package safeStructures
 
-import "sync"
+import (
+	"sync"
+)
 
 type SafeMap struct {
 	m   map[int]Expressions
@@ -43,4 +45,14 @@ func (s *SafeMap) Set(key int, value Expressions) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	s.m[key] = value
+}
+
+func (s *SafeMap) GetAll() []Expressions {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	var res []Expressions
+	for _, v := range s.m {
+		res = append(res, v)
+	}
+	return res
 }

@@ -11,10 +11,6 @@ type Task struct {
 	OperationTime time.Duration `json:"operation_time"`
 }
 
-type Result struct {
-	Id     int     `json:"id"`
-	Result float64 `json:"result"`
-}
 type TaskWrapper struct {
 	Task Task `json:"task"`
 }

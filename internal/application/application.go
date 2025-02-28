@@ -37,6 +37,7 @@ func (a *Application) Run(ctx context.Context) int {
 		logger.Errorf("Ошибка при закрытии сервера: %v", err)
 		return 1
 	}
+	o.Shutdown()
 	logger.Info("Сервер закрыт.")
 	return 0
 }

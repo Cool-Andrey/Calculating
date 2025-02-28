@@ -1,10 +1,12 @@
 package logic
 
 import (
+	"sync"
 	"time"
 )
 
-func Worker(tasks <-chan Task, results chan<- Task) {
+func Worker(tasks <-chan Task, results chan<- Task, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for task := range tasks {
 		var res float64
 		switch task.Operation {

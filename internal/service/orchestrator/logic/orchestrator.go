@@ -66,14 +66,23 @@ func Calc(expression string, logger *zap.SugaredLogger, tasks chan logic.Task, r
 	if !calc.Right_string(expression) {
 		errors <- calc.ErrInvalidBracket
 		done <- 1
+		logger.Errorf("Ошибка вычисления: %v", calc.ErrInvalidBracket)
+		logger.Debug("Оркестратор завершил работу.")
+		return
 	}
 	if calc.IsLetter(expression) {
 		errors <- calc.ErrInvalidOperands
 		done <- 1
+		logger.Errorf("Ошибка вычисления: %v", calc.ErrInvalidOperands)
+		logger.Debug("Оркестратор завершил работу.")
+		return
 	}
 	if expression == "" || expression == " " {
 		errors <- calc.ErrEmptyExpression
 		done <- 1
+		logger.Errorf("Ошибка вычисления: %v", calc.ErrEmptyExpression)
+		logger.Debug("Оркестратор завершил работу.")
+		return
 	}
 	expression = strings.ReplaceAll(expression, " ", "")
 	tokens := calc.Tokenize(expression)
@@ -81,6 +90,8 @@ func Calc(expression string, logger *zap.SugaredLogger, tasks chan logic.Task, r
 	if !calc.CountOp(tokens) {
 		errors <- calc.ErrInvalidOperands
 		done <- 1
+		logger.Debug("Оркестратор завершил работу.")
+		return
 	}
 	node := buildAST(tokens)
 	result, err := calcLvl(node, tasks, results, logger, id)

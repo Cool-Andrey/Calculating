@@ -2,6 +2,7 @@ package transport
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/Cool-Andrey/Calculating/internal/agent/logic"
 	"github.com/Cool-Andrey/Calculating/internal/config"
@@ -12,18 +13,18 @@ import (
 )
 
 type Transport struct {
-	in      chan logic.Task
-	results chan logic.Task
+	In      chan logic.Task
+	Results chan logic.Task
 }
 
-func NewAgent() *Transport {
+func NewAgent(cntGoroutins int) *Transport {
 	return &Transport{
-		in:      make(chan logic.Task, 128),
-		results: make(chan logic.Task, 128),
+		In:      make(chan logic.Task, cntGoroutins),
+		Results: make(chan logic.Task, cntGoroutins),
 	}
 }
 
-func (t *Transport) Start() {
+func (t *Transport) Start(address string, ctx context.Context) {
 	configLog := config.ConfigFromEnv()
 	logger := config.SetupLogger(configLog.Mode)
 	pingStr := os.Getenv("PING")
@@ -34,49 +35,62 @@ func (t *Transport) Start() {
 	if err != nil {
 		logger.Fatalf("Ошибка преобразования значение переменной ping %v", err)
 	}
-	cntGoroutinsStr := os.Getenv("COMPUTING_POWER")
-	if cntGoroutinsStr == "" {
-		logger.Fatal("Укажите количество запускаемых потоков(переменную COMPUTING_POWER)")
-	}
-	cntGoroutins, err := strconv.Atoi(cntGoroutinsStr)
-	if err != nil {
-		logger.Fatalf("Не удалось преобразовать значение COMPUTING_POWER в число: %v", err)
-	}
+	//cntGoroutinsStr := os.Getenv("COMPUTING_POWER")
+	//if cntGoroutinsStr == "" {
+	//	logger.Fatal("Укажите количество запускаемых потоков(переменную COMPUTING_POWER)")
+	//}
+	//cntGoroutins, err := strconv.Atoi(cntGoroutinsStr)
+	//if err != nil {
+	//	logger.Fatalf("Не удалось преобразовать значение COMPUTING_POWER в число: %v", err)
+	//}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				time.Sleep(time.Duration(ping) * time.Millisecond)
+				req, err := http.Get(address)
+				//logger.Debug("Запрос задачи")
+				if err != nil {
+					logger.Errorf("Ошибка запроса: %v", err)
+					continue
+				}
+				//logger.Debugf("Возращён код: %d", req.StatusCode)
+				defer req.Body.Close()
+				if req.StatusCode == 404 || req.StatusCode == 500 {
+					continue
+				}
+				//logger.Debugf("Принял %s", req.Body)
+				task := logic.TaskWrapper{}
+				err = json.NewDecoder(req.Body).Decode(&task)
+				t.In <- task.Task
+				logger.Debugf("Расшифровал: %+v", task)
+			}
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				resTask := <-t.Results
+				task := logic.TaskWrapper{Task: resTask}
+				jsonBytes, err := json.Marshal(task)
+				if err != nil {
+					logger.Errorf("Ошибка кодирования в json: %v", err)
+				}
+				_, err = http.Post(address, "application/json", bytes.NewBuffer(jsonBytes))
+				if err != nil {
+					logger.Errorf("Ошибка отправки результата: %v", err)
+				}
+			}
+		}
+	}()
+}
 
-	tasksCh := make(chan logic.Task, cntGoroutins)
-	resultsCh := make(chan logic.Task, cntGoroutins)
-	for i := 0; i < cntGoroutins; i++ {
-		go logic.Worker(tasksCh, resultsCh)
-	}
-
-	for {
-		time.Sleep(time.Duration(ping) * time.Millisecond)
-		address := "http://localhost:" + configLog.Addr + "/internal/task"
-		req, err := http.Get(address)
-		//logger.Debug("Запрос задачи")
-		if err != nil {
-			logger.Errorf("Ошибка запроса: %v", err)
-			continue
-		}
-		//logger.Debugf("Возращён код: %d", req.StatusCode)
-		defer req.Body.Close()
-		if req.StatusCode == 404 || req.StatusCode == 500 {
-			continue
-		}
-		//logger.Debugf("Принял %s", req.Body)
-		task := logic.TaskWrapper{}
-		err = json.NewDecoder(req.Body).Decode(&task)
-		logger.Debugf("Расшифровал: %+v", task)
-		tasksCh <- task.Task
-		resTask := <-resultsCh
-		task.Task.Result = resTask.Result
-		jsonBytes, err := json.Marshal(task)
-		if err != nil {
-			logger.Errorf("Ошибка кодирования в json: %v", err)
-		}
-		_, err = http.Post(address, "application/json", bytes.NewBuffer(jsonBytes))
-		if err != nil {
-			logger.Errorf("Ошибка отправки результата: %v", err)
-		}
-	}
+func (t *Transport) Shutdown() {
+	close(t.In)
+	close(t.Results)
 }
