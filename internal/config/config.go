@@ -66,10 +66,11 @@ func configDelay(config *Config) {
 
 func ConfigFromEnv() *Config {
 	config := new(Config)
-	config.Addr = os.Getenv("PORT")
-	if config.Addr == "" {
-		config.Addr = "8080"
-	}
+	config.Addr = "8080" // Я понимаю, что такое называется заглушка... Лень в коде убирать использование config.Addr. Порты сами пробросите через docker
+	//config.Addr = os.Getenv("PORT")
+	//if config.Addr == "" {
+	//	config.Addr = "8080"
+	//}
 	config.Mode.Console = os.Getenv("MODE_CONSOLE")
 	if config.Mode.Console == "" {
 		config.Mode.Console = "Dev"

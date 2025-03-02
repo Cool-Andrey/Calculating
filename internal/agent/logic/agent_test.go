@@ -159,7 +159,7 @@ func TestWorker(t *testing.T) {
 	results := make(chan Task, 5)
 	wg := &sync.WaitGroup{}
 	for i := 0; i < 5; i++ {
-		//wg.Add(1)
+		wg.Add(1)
 		go Worker(tasks, results, wg)
 	}
 	opTime := time.Millisecond

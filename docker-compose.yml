@@ -1,0 +1,33 @@
+version: '3.8'
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: build/orchestrator/Dockerfile
+    ports:
+      - '8080:8080' # Ставьте любой порт, какой хотите.
+    environment:
+      - MODE_CONSOLE=DEV #Необязательно. Можете посмотреть README
+      - TIME_ADDITION_MS=100
+      - TIME_SUBTRACTION_MS=100
+      - TIME_MULTIPLICATIONS_MS=100
+      - TIME_DIVISIONS_MS=100
+      - WRITE_FILE=FALSE
+    depends_on:
+      - tests
+  agent:
+    build:
+      context: .
+      dockerfile: build/agent/Dockerfile
+    environment:
+      - MODE_CONSOLE=DEV #Необязательно. Можете посмотреть README
+      - WRITE_FILE=FALSE
+      - PING=100
+      - COMPUTING_POWER=25 #Как пример. В Dockerfile ставится по умолчанию 2.
+      - URL=http://orchestrator:8080
+    depends_on:
+      - orchestrator
+  tests:
+    build:
+      context: .
+      dockerfile: build/tests/Dockerfile

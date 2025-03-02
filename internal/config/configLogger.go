@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -19,11 +20,11 @@ type Mode struct {
 func SetupLogger(newConfig Mode) *zap.SugaredLogger {
 	var config, configFile zap.Config
 	var consoleEncoder, fileEncoder zapcore.Encoder
-	if newConfig.Console == "Dev" {
+	if strings.EqualFold(newConfig.Console, "dev") {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder // А чо, красиво жить не запретишь)
 		consoleEncoder = zapcore.NewConsoleEncoder(config.EncoderConfig)
-	} else if newConfig.Console == "Prod" {
+	} else if strings.EqualFold(newConfig.Console, "prod") {
 		config = zap.NewProductionConfig()
 		consoleEncoder = zapcore.NewJSONEncoder(config.EncoderConfig)
 	} else {
@@ -33,10 +34,19 @@ func SetupLogger(newConfig Mode) *zap.SugaredLogger {
 		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000))
 	}
 	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	if newConfig.File == "Dev" {
+	if strings.EqualFold(os.Getenv("WRITE_FILE"), "false") {
+		consoleCore := zapcore.NewCore(
+			consoleEncoder,
+			zapcore.AddSync(os.Stdout),
+			config.Level,
+		)
+		logger := zap.New(consoleCore)
+		return logger.Sugar()
+	}
+	if strings.EqualFold(newConfig.File, "dev") {
 		configFile = zap.NewDevelopmentConfig()
 		fileEncoder = zapcore.NewConsoleEncoder(configFile.EncoderConfig)
-	} else if newConfig.File == "Prod" {
+	} else if strings.EqualFold(newConfig.File, "prod") {
 		configFile = zap.NewProductionConfig()
 		fileEncoder = zapcore.NewJSONEncoder(configFile.EncoderConfig)
 	} else {
@@ -54,14 +64,16 @@ func SetupLogger(newConfig Mode) *zap.SugaredLogger {
 		if err != nil {
 			log.Fatalf("Ошибка создания папки для хранения логов: %v", err)
 		}
+	} else if err != nil {
+		log.Fatalf("Не удалось проверить наличие дирректории %v", err)
 	}
 	var permision int
-	if newConfig.DelFile == "No" {
+	if strings.EqualFold(newConfig.DelFile, "false") {
 		permision = os.O_APPEND
-	} else if newConfig.DelFile == "Yes" {
+	} else if strings.EqualFold(newConfig.DelFile, "true") {
 		permision = os.O_TRUNC
 	}
-	file, err := os.OpenFile(logPath, os.O_CREATE|permision, 0666)
+	file, err := os.OpenFile(logPath, os.O_CREATE|permision, os.ModePerm)
 	if err != nil {
 		log.Fatalf("Проблема с созданием/открытием файла лога: %v", err)
 	}

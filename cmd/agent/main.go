@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/Cool-Andrey/Calculating/internal/agent/logic"
 	"github.com/Cool-Andrey/Calculating/internal/agent/transport"
-	"github.com/Cool-Andrey/Calculating/internal/config"
 	"log"
 	"os"
 	"os/signal"
@@ -22,8 +21,13 @@ func main() {
 		log.Fatalf("Не удалось преобразовать значение COMPUTING_POWER в число: %v", err)
 	}
 	agent := transport.NewAgent(cntGoroutins)
-	conf := config.ConfigFromEnv()
-	address := "http://localhost:" + conf.Addr + "/internal/task"
+	//conf := config.ConfigFromEnv()
+	//address := "http://localhost:" + conf.Addr + "/internal/task"
+	url := os.Getenv("URL")
+	if url == "" {
+		url = "http://127.0.0.1:8080"
+	}
+	address := url + "/internal/task"
 	wg := &sync.WaitGroup{}
 	for i := 0; i < cntGoroutins; i++ {
 		wg.Add(1)

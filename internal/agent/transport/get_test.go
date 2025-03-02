@@ -33,9 +33,7 @@ func mockServer(task logic.TaskWrapper, t *testing.T) *httptest.Server {
 
 func TestTransport_Shutdown(t *testing.T) {
 	os.Setenv("PING", "100")
-	os.Setenv("COMPUTING_POWER", "2")
 	defer os.Unsetenv("PING")
-	defer os.Unsetenv("COMPUTING_POWER")
 	agent := NewAgent(1)
 	ctx, cancel := context.WithCancel(context.Background())
 	agent.Start("", ctx)
@@ -57,9 +55,7 @@ func TestTransport_Shutdown(t *testing.T) {
 
 func TestTranport_StartGet(t *testing.T) {
 	os.Setenv("PING", "100")
-	os.Setenv("COMPUTING_POWER", "2")
 	defer os.Unsetenv("PING")
-	defer os.Unsetenv("COMPUTING_POWER")
 	task := logic.TaskWrapper{
 		Task: logic.Task{
 			Id:            1,
@@ -71,21 +67,19 @@ func TestTranport_StartGet(t *testing.T) {
 	}
 	server := mockServer(task, t)
 	time.Sleep(1 * time.Second)
-	defer server.Close()
 	agent := NewAgent(1)
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	agent.Start(server.URL, ctx)
 	time.Sleep(1 * time.Second)
+	server.Close()
 	cancel()
 	select {
 	case resTask := <-agent.In:
-		agent.Shutdown()
 		if resTask != task.Task {
 			t.Errorf("Ожидал %v, получил %v", task.Task, resTask)
 		}
 	default:
-		agent.Shutdown()
 		t.Error("Ждал ждал но не дождался результат(")
 	}
 }
@@ -105,6 +99,7 @@ func TestTranport_StartPost(t *testing.T) {
 			Result:        3,
 		},
 	}
+	t.Fatal("Хз")
 	server := mockServer(task, t)
 	agent := NewAgent(1)
 	ctx := context.Background()
@@ -114,5 +109,4 @@ func TestTranport_StartPost(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	server.Close()
 	cancel()
-	agent.Shutdown()
 }
