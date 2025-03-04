@@ -1,0 +1,455 @@
+{
+	"info": {
+		"_postman_id": "56533ee2-9f25-40c4-bdf1-3b538a22ebee",
+		"name": "Calculatung API",
+		"description": "Здесь приведены примеры запросов на мой сервер. Названия сделаны на английском, т.к. мне кажется, что так более понятно",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "40467462"
+	},
+	"item": [
+		{
+			"name": "Client",
+			"item": [
+				{
+					"name": "Successful expression",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Successful POST request\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"expression\" : \"17*17\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/calculate",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"calculate"
+							]
+						},
+						"description": "Стандартный запрос. Возвратит либо `201`, если выражение успешно принято и записано, либо при внутреннем сбое `500`, для более подробной информации читай логи."
+					},
+					"response": []
+				},
+				{
+					"name": "Successful get {id}",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/expressions/{id}",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"expressions",
+								"{id}"
+							]
+						},
+						"description": "Пример правильного запроса результата выражения. Возвратит либо `200`, если найдено выражение, `404` если не найдено. Можете подставлять разные id."
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid json",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"expression\": \"2+2\"\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/calculate",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"calculate"
+							]
+						},
+						"description": "Возвратит `422` из-за некорректного json'а"
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid method for calculate",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/calculate",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"calculate"
+							]
+						},
+						"description": "Возвратит `405` с текстом `Method Not Allowed`"
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid method for expressions",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/expressions/1",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"expressions",
+								"1"
+							]
+						},
+						"description": "Возвратит `405` с текстом `Method Not Allowed`"
+					},
+					"response": []
+				},
+				{
+					"name": "Empty request",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/calculate",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"calculate"
+							]
+						},
+						"description": "Возвратит `422` и текст об пустом запросе"
+					},
+					"response": []
+				},
+				{
+					"name": "Empty json",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Возвратит `201`, и в результате выражения напишет ошибку пустое выражение/json"
+					},
+					"response": []
+				},
+				{
+					"name": "Empty expression",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"expression\" : \"\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/calculate",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"calculate"
+							]
+						},
+						"description": "Возвратит `201`, и в результате выражения напишет ошибку пустое выражение/json"
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid expression",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"expression\": \"2+2+\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/calculate",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"calculate"
+							]
+						},
+						"description": "Возвратит `201`, и в результате выражения напишет ошибку об неправильной расстановке операторов(+,-,\\*,/)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get bad expression",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/expressions/{id}",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"expressions",
+								"{id}"
+							]
+						},
+						"description": "Попробуйте вбить предыдущий пример, и посмотреть результат его вычисления по его id."
+					},
+					"response": []
+				},
+				{
+					"name": "All expressions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8080/api/v1/expressions",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"expressions"
+							]
+						},
+						"description": "Вбейте несколько выражений, и потом пройдите по ссылке. Получите список выражений. Код либо `200` \\- успешно вывел список, либо `500`, внутренняя ошибка"
+					},
+					"response": []
+				}
+			],
+			"description": "Варианты запросов пользователя. Везде есть ошибка `500` - означает внутреннюю ошибку сервера"
+		},
+		{
+			"name": "Internal",
+			"item": [
+				{
+					"name": "Get task",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8080/internal/task",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"internal",
+								"task"
+							]
+						},
+						"description": "Это пример запроса задачи. Подробнее в README. `200` - есть задча и оркестратор её отдал. `404` - задачи нет, `505` - внутренняя ошибка сервера"
+					},
+					"response": []
+				},
+				{
+					"name": "Take result",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"task\":{\r\n        \"id\":2,\r\n        \"operation\":\"*\",\r\n        \"arg1\":2,\r\n        \"arg2\":2,\r\n        \"Result\":4,\r\n        \"operation_time\":1000000000\r\n    }\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8080/internal/task",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8080",
+							"path": [
+								"internal",
+								"task"
+							]
+						},
+						"description": "Пример отдачи выражения. `200` - записал результат, `404` - не нашёл такого id, `422` - результат уже есть, `500` - внутренняя ошибка сервера."
+					},
+					"response": []
+				}
+			],
+			"description": "Это примеры запросов от агента к оркестратору"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "id",
+			"value": "1"
+		},
+		{
+			"key": "base_url",
+			"value": "https://postman-rest-api-learner.glitch.me/"
+		}
+	]
+}
