@@ -14,7 +14,7 @@ import (
 func main() {
 	cntGoroutinsStr := os.Getenv("COMPUTING_POWER")
 	if cntGoroutinsStr == "" {
-		log.Fatal("Укажите количество запускаемых потоков(переменную COMPUTING_POWER)")
+		cntGoroutinsStr = "2"
 	}
 	cntGoroutins, err := strconv.Atoi(cntGoroutinsStr)
 	if err != nil {

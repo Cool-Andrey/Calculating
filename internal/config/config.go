@@ -79,9 +79,9 @@ func ConfigFromEnv() *Config {
 	if config.Mode.File == "" {
 		config.Mode.File = "Prod"
 	}
-	config.Mode.DelFile = os.Getenv("CLEAN_FILE")
-	if config.Mode.DelFile == "" {
-		config.Mode.DelFile = "False"
+	config.Mode.CleanFile = os.Getenv("CLEAN_FILE")
+	if config.Mode.CleanFile == "" {
+		config.Mode.CleanFile = "False"
 	}
 	configDelay(config)
 	return config

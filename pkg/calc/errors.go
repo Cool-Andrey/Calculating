@@ -7,8 +7,8 @@ var (
 	ErrInvalidBracket  = errors.New("Товарищ пользователь! Проверьте скобки!")
 	ErrInvalidOperands = errors.New("Товарищ пользователь! Проверьте количество операндов(+,-,/,*), их порядок и проверьте что нет буков")
 	ErrInvalidJson     = errors.New("Товарищ пользователь! Проверьте правильность написания json'а")
-	ErrEmptyJson       = errors.New("Пустой json!")
-	ErrEmptyExpression = errors.New("Пустое выражение!")
+	ErrEmptyJson       = errors.New("Пустой запрос!")
+	ErrEmptyExpression = errors.New("Пустое выражение/json!")
 
 	ErrorMap = map[error]int{
 		ErrInvalidBracket:  422,

@@ -14,5 +14,4 @@ FROM alpine:3.21
 
 COPY --from=build /app/agent /app/agent
 ENV WRITE_FILE=FALSE
-ENV COMPUTING_POWER=2
 ENTRYPOINT ["/app/agent"]

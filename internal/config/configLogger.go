@@ -12,9 +12,9 @@ import (
 )
 
 type Mode struct {
-	Console string
-	File    string
-	DelFile string
+	Console   string
+	File      string
+	CleanFile string
 }
 
 func SetupLogger(newConfig Mode) *zap.SugaredLogger {
@@ -28,7 +28,7 @@ func SetupLogger(newConfig Mode) *zap.SugaredLogger {
 		config = zap.NewProductionConfig()
 		consoleEncoder = zapcore.NewJSONEncoder(config.EncoderConfig)
 	} else {
-		log.Fatal("Проверьте значение глобальной переменной MODE_CONSOLE. Читай README")
+		log.Fatal("Проверьте значение глобальной переменной MODE_CONSOLE. Подробнее в README")
 	}
 	config.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000))
@@ -50,7 +50,7 @@ func SetupLogger(newConfig Mode) *zap.SugaredLogger {
 		configFile = zap.NewProductionConfig()
 		fileEncoder = zapcore.NewJSONEncoder(configFile.EncoderConfig)
 	} else {
-		log.Fatal("Проверьте значение глобальной переменной MODE_FILE. Чита README")
+		log.Fatal("Проверьте значение глобальной переменной MODE_FILE. Подробнее в README")
 	}
 	configFile.EncoderConfig.EncodeDuration = func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(fmt.Sprintf("%.3fµs", float64(d)/1000))
@@ -68,10 +68,12 @@ func SetupLogger(newConfig Mode) *zap.SugaredLogger {
 		log.Fatalf("Не удалось проверить наличие дирректории %v", err)
 	}
 	var permision int
-	if strings.EqualFold(newConfig.DelFile, "false") {
+	if strings.EqualFold(newConfig.CleanFile, "false") {
 		permision = os.O_APPEND
-	} else if strings.EqualFold(newConfig.DelFile, "true") {
+	} else if strings.EqualFold(newConfig.CleanFile, "true") {
 		permision = os.O_TRUNC
+	} else {
+		log.Fatal("Проверьте значение глобальной переменной CLEAN_FILE. Подробнее в README")
 	}
 	file, err := os.OpenFile(logPath, os.O_CREATE|permision, os.ModePerm)
 	if err != nil {

@@ -286,11 +286,16 @@ func TestGetAllExpressionsHandler(t *testing.T) {
 			t.Errorf("Не получилось прочитать ответ %v", err)
 		}
 		expectedBody, err := json.Marshal(ExprWr{Expressions: []safeStructures.Expressions{expr1, expr2}})
+		expectedBody2, err := json.Marshal(ExprWr{Expressions: []safeStructures.Expressions{expr2, expr1}})
 		if err != nil {
 			t.Errorf("Ошибка преобразования ожидаемого результата в json: %v", err)
 		}
-		if string(body) != string(expectedBody) {
-			t.Errorf("Ожидал ответ: %s получил %s", expectedBody, string(body))
+		if string(body) != string(expectedBody) && string(body) != string(expectedBody2) {
+			if string(body) != string(expectedBody) {
+				t.Errorf("Ожидал ответ: %s получил %s", expectedBody, string(body))
+			} else if string(body) != string(expectedBody2) {
+				t.Errorf("Ожидал ответ: %s получил %s", expectedBody2, string(body))
+			}
 		}
 	})
 

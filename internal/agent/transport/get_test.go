@@ -99,7 +99,6 @@ func TestTranport_StartPost(t *testing.T) {
 			Result:        3,
 		},
 	}
-	t.Fatal("Хз")
 	server := mockServer(task, t)
 	agent := NewAgent(1)
 	ctx := context.Background()
