@@ -36,7 +36,10 @@ Docker версии 27.5.1 или выше
 
 # Запуск
 
-Скопируйте проект через git clone.
+Скопируйте проект и перейдите в директорию с ним
+```shell
+git clone https://github.com/Cool-Andrey/Calculating && cd Calculating
+```
 
 ## Командная строка
 
