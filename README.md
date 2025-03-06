@@ -45,7 +45,7 @@ git clone https://github.com/Cool-Andrey/Calculating && cd Calculating
 
 ```shell
 go mod download
-go run cmd/orchestrator/main.go && go run cmd/agent/main.go
+go run cmd/orchestrator/main.go & go run cmd/agent/main.go
 ```
 
 ## Docker CLI
@@ -104,7 +104,7 @@ docker compose up --build --abort-on-container-failure
 
 `CLEAN_FILE`: `false` - файл логов, если не был удалён, не очищать и просто добавлять в конец файла логи. `true` - файл логов, если не был удалён, очищать и заново записывать уже новые логи. По умолчанию `false`
 
-`WRITE_FILE`: определяет, надо ли записывать файл логов. Принимает одно значение - `false` - не записывать. В остальных случаях файл записывается. 
+`WRITE_FILE`: определяет, надо ли записывать файл логов. Принимает одно значение - `false` - не записывать. В остальных случаях файл записывается. Если у вас ошибка `write error: write log/server.log: bad file descriptor`, попробуйте поставить `false`. 
 
 ## Задержка
 `TIME_ADDITION_MS`: время выполнения сложения(задержка при сложении). В миллисекундах. Принимает любое неотрицательное целое значение. По умолчанию `1000`
