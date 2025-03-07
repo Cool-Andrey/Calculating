@@ -63,7 +63,7 @@ func calcLvl(node *node, tasks chan logic.Task, results chan float64, logger *za
 }
 
 func Calc(expression string, logger *zap.SugaredLogger, tasks chan logic.Task, results chan float64, errors chan error, done chan int, id int) {
-	if !calc.Right_string(expression) {
+	if !calc.RightString(expression) {
 		errors <- calc.ErrInvalidBracket
 		done <- 1
 		logger.Errorf("Ошибка вычисления: %v", calc.ErrInvalidBracket)
@@ -90,6 +90,7 @@ func Calc(expression string, logger *zap.SugaredLogger, tasks chan logic.Task, r
 	if !calc.CountOp(tokens) {
 		errors <- calc.ErrInvalidOperands
 		done <- 1
+		logger.Errorf("Ошибка вычисления: %v", calc.ErrInvalidOperands)
 		logger.Debug("Оркестратор завершил работу.")
 		return
 	}

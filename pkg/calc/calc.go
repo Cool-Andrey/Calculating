@@ -6,9 +6,9 @@ import (
 	"unicode"
 )
 
-func Right_string(s string) bool {
+func RightString(s string) bool {
 	stack := []rune{}
-	for _, c := range s {
+	for i, c := range s {
 		switch c {
 		case ')':
 			if stack[len(stack)-1] != '(' || len(stack) == 0 {
@@ -17,6 +17,27 @@ func Right_string(s string) bool {
 			stack = stack[:len(stack)-1]
 		case '(':
 			stack = append(stack, c)
+		case '.':
+			if i > 0 && len(s)-2 > i {
+				_, err := strconv.Atoi(string(s[i-1]))
+				if err != nil {
+					return false
+				}
+				_, err = strconv.Atoi(string(s[i+1]))
+				if err != nil {
+					return false
+				}
+			} else if i == 0 {
+				_, err := strconv.Atoi(string(s[i+1]))
+				if err != nil {
+					return false
+				}
+			} else if i == len(s)-2 {
+				_, err := strconv.Atoi(string(s[i-1]))
+				if err != nil {
+					return false
+				}
+			}
 		}
 	}
 	return len(stack) == 0
@@ -69,7 +90,7 @@ func IsLetter(s string) bool {
 }
 
 func Calc(expression string) (float64, error) {
-	if !Right_string(expression) {
+	if !RightString(expression) {
 		return 0.0, ErrInvalidBracket
 	}
 	if IsLetter(expression) {
