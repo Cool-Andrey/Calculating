@@ -14,7 +14,6 @@ type Delay struct {
 	Divide   time.Duration
 }
 
-// TODO: НЕ ЗАБУДЬ ПЕРЕПИСАТЬ README
 type Config struct {
 	Addr  string
 	Delay Delay

@@ -6,6 +6,10 @@ import (
 	"unicode"
 )
 
+func IsOperator(s string) bool {
+	return s == "+" || s == "-" || s == "*" || s == "/"
+}
+
 func RightString(s string) bool {
 	stack := []rune{}
 	for i, c := range s {
@@ -49,7 +53,7 @@ func CountOp(expression []string) bool {
 	for _, val := range expression {
 		if _, err := strconv.ParseFloat(val, 64); err == nil {
 			numbers++
-		} else if val == "+" || val == "-" || val == "*" || val == "/" {
+		} else if IsOperator(val) {
 			op++
 		}
 	}
@@ -158,12 +162,16 @@ func InfixToPostfix(expression []string) []string {
 			}
 
 		case "+", "-":
-			for len(stack) > 0 && (stack[len(stack)-1] == "*" || stack[len(stack)-1] == "/") {
+			for len(stack) > 0 && stack[len(stack)-1] != "(" && IsOperator(stack[len(stack)-1]) {
 				postfix = append(postfix, stack[len(stack)-1])
 				stack = stack[:len(stack)-1]
 			}
 			stack = append(stack, r)
 		case "*", "/":
+			for len(stack) > 0 && (stack[len(stack)-1] == "*" || stack[len(stack)-1] == "/") {
+				postfix = append(postfix, stack[len(stack)-1])
+				stack = stack[:len(stack)-1]
+			}
 			stack = append(stack, r)
 		default:
 			postfix = append(postfix, r)

@@ -46,6 +46,7 @@ func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogg
 		logger.Errorf("Попытка отдать выражение на обработку методом не POST")
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	if err != nil && err != io.EOF {
 		w.WriteHeader(422)
 		logger.Errorf("Ошибка чтения json: %v", err)
@@ -87,6 +88,7 @@ func GiveTask(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger,
 		if len(o.Out) == 0 {
 			w.WriteHeader(404)
 		} else {
+			w.Header().Set("Content-Type", "application/json")
 			task := <-o.Out
 			switch task.Operation {
 			case "+":
@@ -146,6 +148,7 @@ func GetExpression(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLo
 		w.WriteHeader(404)
 		logger.Debug("Не нашёл выражения")
 	} else {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
 		resWr := ResponseWr{Expression: res}
 		jsonBytes, err := json.Marshal(resWr)
@@ -164,6 +167,7 @@ func GetAllExpressions(w http.ResponseWriter, r *http.Request, logger *zap.Sugar
 		logger.Errorf("Попытка получить выражение не методом GET")
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	expressions := safeMap.GetAll()
 	res := ExprWr{Expressions: expressions}
 	jsonBytes, err := json.Marshal(res)

@@ -15,10 +15,6 @@ type node struct {
 	result float64
 }
 
-func isOperator(s string) bool {
-	return s == "+" || s == "-" || s == "*" || s == "/"
-}
-
 func buildAST(tokens []string) *node {
 	stack := []*node{}
 	for _, token := range tokens {
@@ -37,7 +33,7 @@ func buildAST(tokens []string) *node {
 }
 
 func calcLvl(node *node, tasks chan logic.Task, results chan float64, logger *zap.SugaredLogger, id int) (float64, error) {
-	if !isOperator(node.value) {
+	if !calc.IsOperator(node.value) {
 		val, err := strconv.ParseFloat(node.value, 64)
 		if err != nil {
 			logger.Errorf("Не удалось преобразовать строку в число: %v", err)
