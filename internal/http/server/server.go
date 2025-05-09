@@ -5,33 +5,31 @@ import (
 	"github.com/Cool-Andrey/Calculating/internal/config"
 	"github.com/Cool-Andrey/Calculating/internal/http/server/handler"
 	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
-	"github.com/Cool-Andrey/Calculating/pkg/calc/safeStructures"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
 
-func newHandler(logger *zap.SugaredLogger, o *orchestrator.Orchestator, config *config.Config) http.Handler {
+func newHandler(logger *zap.SugaredLogger, o *orchestrator.Orchestrator, config *config.Config, pool *pgxpool.Pool) http.Handler {
 	muxHandler := http.NewServeMux()
-	Map := safeStructures.NewSafeMap()
-	Id := safeStructures.NewSafeId()
 	muxHandler.HandleFunc("/api/v1/calculate", func(w http.ResponseWriter, r *http.Request) {
-		handler.CalcHandler(w, r, logger, o, Map, Id)
+		handler.CalcHandler(w, r, logger, o, pool)
 	})
 	muxHandler.HandleFunc("/internal/task", func(w http.ResponseWriter, r *http.Request) {
-		handler.GiveTask(w, r, logger, o, config.Delay, Map)
+		handler.GiveTask(w, r, logger, o, config.Delay, pool)
 	})
 	muxHandler.HandleFunc("/api/v1/expressions/", func(w http.ResponseWriter, r *http.Request) {
-		handler.GetExpression(w, r, logger, Map)
+		handler.GetExpression(w, r, logger, pool)
 	})
 	muxHandler.HandleFunc("/api/v1/expressions", func(w http.ResponseWriter, r *http.Request) {
-		handler.GetAllExpressions(w, r, logger, Map)
+		handler.GetAllExpressions(w, r, logger, pool)
 	})
 	return handler.Decorate(muxHandler, LoggingMiddleware(logger))
 }
 
-func Run(logger *zap.SugaredLogger, addr string, o *orchestrator.Orchestator, configVar *config.Config) func(ctx context.Context) error {
-	Handler := newHandler(logger, o, configVar)
+func Run(logger *zap.SugaredLogger, addr string, o *orchestrator.Orchestrator, configVar *config.Config, pool *pgxpool.Pool) func(ctx context.Context) error {
+	Handler := newHandler(logger, o, configVar, pool)
 	server := &http.Server{Addr: ":" + addr, Handler: Handler}
 	ch := make(chan error, 1)
 	go func() {
