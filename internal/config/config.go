@@ -1,9 +1,11 @@
 package config
 
 import (
+	"fmt"
+	"github.com/ilyakaznacheev/cleanenv"
 	"log"
+	"net/url"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -16,72 +18,74 @@ type Delay struct {
 
 type Config struct {
 	Addr  string
+	URLdb string
 	Delay Delay
 	Mode  Mode
 }
 
-func configDelay(config *Config) {
-	plus := os.Getenv("TIME_ADDITION_MS")
-	if plus == "" {
-		config.Delay.Plus = time.Second
-	} else {
-		plus, err := strconv.Atoi(plus)
-		if err != nil {
-			log.Fatalf("Ошибка преобразования TIME_ADDITION_MS: %s", err)
-		}
-		config.Delay.Plus = time.Duration(plus) * time.Millisecond
+type envConfig struct {
+	URLdb      string `env:"DATABASE_URL"`
+	DBHost     string `env:"DATABASE_HOST" env-default:"localhost"`
+	DBPort     string `env:"DATABASE_PORT" env-default:"5432"`
+	DBUser     string `env:"DATABASE_USER"`
+	DBPassword string `env:"DATABASE_PASSWORD"`
+	DBName     string `env:"DATABASE_NAME"`
+	Delay      struct {
+		Plus     int `env:"TIME_ADDITION_MS" env-default:"1000"`
+		Minus    int `env:"TIME_SUBTRACTION_MS" env-default:"1000"`
+		Multiple int `env:"TIME_MULTIPLICATIONS_MS" env-default:"1000"`
+		Divide   int `env:"TIME_DIVISIONS_MS" env-default:"1000"`
 	}
-	minus := os.Getenv("TIME_SUBTRACTION_MS")
-	if minus == "" {
-		config.Delay.Minus = time.Second
-	} else {
-		minus, err := strconv.Atoi(minus)
-		if err != nil {
-			log.Fatalf("Ошибка преобразования TIME_SUBTRACTION_MS: %s", err)
-		}
-		config.Delay.Minus = time.Duration(minus) * time.Millisecond
-	}
-	multiple := os.Getenv("TIME_MULTIPLICATIONS_MS")
-	if multiple == "" {
-		config.Delay.Multiple = time.Second
-	} else {
-		multiple, err := strconv.Atoi(multiple)
-		if err != nil {
-			log.Fatalf("Ошибка преобразования TIME_MULTIPLICATION_MS: %s", err)
-		}
-		config.Delay.Multiple = time.Duration(multiple) * time.Millisecond
-	}
-	divide := os.Getenv("TIME_DIVISIONS_MS")
-	if divide == "" {
-		config.Delay.Divide = time.Second
-	} else {
-		divide, err := strconv.Atoi(divide)
-		if err != nil {
-			log.Fatalf("Ошибка преобразования TIME_DIVISION_MS: %s", err)
-		}
-		config.Delay.Divide = time.Duration(divide) * time.Millisecond
+	Mode struct {
+		Console   string `env:"MODE_CONSOLE" env-default:"Dev"`
+		File      string `env:"MODE_FILE" env-default:"Prod"`
+		CleanFile string `env:"DEL_FILE" env-default:"False"`
 	}
 }
 
 func ConfigFromEnv() *Config {
-	config := new(Config)
-	config.Addr = "8080" // Я понимаю, что такое называется заглушка... Лень в коде убирать использование config.Addr. Порты сами пробросите через docker
-	//config.Addr = os.Getenv("PORT")
-	//if config.Addr == "" {
-	//	config.Addr = "8080"
-	//}
-	config.Mode.Console = os.Getenv("MODE_CONSOLE")
-	if config.Mode.Console == "" {
-		config.Mode.Console = "Dev"
+	var env envConfig
+	err := cleanenv.ReadConfig("config.env", &env)
+	switch {
+	case err == nil:
+	case os.IsNotExist(err):
+		log.Println("Файл конфигурации не найден, читаю из переменных окружения/ставлю стандартные значения")
+		err = cleanenv.ReadEnv(&env)
+		if err != nil {
+			log.Fatalf("Ошибка чтения переменных окружения: %s", err)
+		}
+	default:
+		log.Printf("Ошибка чтения файла конфигурации: %s\nЧитаю переменные окружения", err)
+		err = cleanenv.ReadEnv(&env)
+		if err != nil {
+			log.Fatalf("Ошибка чтения переменных окружения: %s", err)
+		}
 	}
-	config.Mode.File = os.Getenv("MODE_FILE")
-	if config.Mode.File == "" {
-		config.Mode.File = "Prod"
+	if env.URLdb == "" {
+		if env.DBUser == "" || env.DBPassword == "" || env.DBName == "" {
+			log.Fatal("Параметры DATABASE_USER, DATABASE_PASSWORD и DATABASE_NAME должны быть указаны! В ином случае заполните DATABASE_URL!")
+		}
+		pgURL := url.URL{
+			Scheme: "postgres",
+			User:   url.UserPassword(env.DBUser, env.DBPassword),
+			Host:   fmt.Sprintf("%s:%s", env.DBHost, env.DBPort),
+			Path:   env.DBName,
+		}
+		env.URLdb = pgURL.String()
 	}
-	config.Mode.CleanFile = os.Getenv("CLEAN_FILE")
-	if config.Mode.CleanFile == "" {
-		config.Mode.CleanFile = "False"
+	return &Config{
+		Addr:  "8080",
+		URLdb: env.URLdb,
+		Delay: Delay{
+			Plus:     time.Duration(env.Delay.Plus) * time.Millisecond,
+			Minus:    time.Duration(env.Delay.Minus) * time.Millisecond,
+			Multiple: time.Duration(env.Delay.Multiple) * time.Millisecond,
+			Divide:   time.Duration(env.Delay.Divide) * time.Millisecond,
+		},
+		Mode: Mode{
+			Console:   env.Mode.Console,
+			File:      env.Mode.File,
+			CleanFile: env.Mode.CleanFile,
+		},
 	}
-	configDelay(config)
-	return config
 }

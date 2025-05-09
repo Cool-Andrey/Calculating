@@ -1,11 +1,12 @@
 package logic
 
 import (
+	"github.com/Cool-Andrey/Calculating/internal/models"
 	"sync"
 	"time"
 )
 
-func Worker(tasks <-chan Task, results chan<- Task, wg *sync.WaitGroup) {
+func Worker(tasks <-chan models.Task, results chan<- models.Task, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for task := range tasks {
 		var res float64

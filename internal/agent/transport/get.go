@@ -4,37 +4,27 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/Cool-Andrey/Calculating/internal/agent/logic"
 	"github.com/Cool-Andrey/Calculating/internal/config"
+	"github.com/Cool-Andrey/Calculating/internal/models"
 	"net/http"
-	"os"
-	"strconv"
 	"time"
 )
 
 type Transport struct {
-	In      chan logic.Task
-	Results chan logic.Task
+	In      chan models.Task
+	Results chan models.Task
 }
 
 func NewAgent(cntGoroutins int) *Transport {
 	return &Transport{
-		In:      make(chan logic.Task, cntGoroutins),
-		Results: make(chan logic.Task, cntGoroutins),
+		In:      make(chan models.Task, cntGoroutins),
+		Results: make(chan models.Task, cntGoroutins),
 	}
 }
 
-func (t *Transport) Start(address string, ctx context.Context) {
+func (t *Transport) Start(address string, ping int, ctx context.Context) {
 	configLog := config.ConfigFromEnv()
 	logger := config.SetupLogger(configLog.Mode)
-	pingStr := os.Getenv("PING")
-	if pingStr == "" {
-		pingStr = "1000"
-	}
-	ping, err := strconv.Atoi(pingStr)
-	if err != nil {
-		logger.Fatalf("Ошибка преобразования значение переменной ping %v", err)
-	}
 	//cntGoroutinsStr := os.Getenv("COMPUTING_POWER")
 	//if cntGoroutinsStr == "" {
 	//	logger.Fatal("Укажите количество запускаемых потоков(переменную COMPUTING_POWER)")
@@ -62,7 +52,7 @@ func (t *Transport) Start(address string, ctx context.Context) {
 					continue
 				}
 				//logger.Debugf("Принял %s", req.Body)
-				task := logic.TaskWrapper{}
+				task := models.TaskWrapper{}
 				err = json.NewDecoder(req.Body).Decode(&task)
 				t.In <- task.Task
 				logger.Debugf("Расшифровал: %+v", task)
@@ -76,12 +66,13 @@ func (t *Transport) Start(address string, ctx context.Context) {
 				return
 			default:
 				resTask := <-t.Results
-				task := logic.TaskWrapper{Task: resTask}
+				task := models.TaskWrapper{Task: resTask}
 				jsonBytes, err := json.Marshal(task)
 				if err != nil {
 					logger.Errorf("Ошибка кодирования в json: %v", err)
 				}
 				_, err = http.Post(address, "application/json", bytes.NewBuffer(jsonBytes))
+				logger.Debugf("Отправил: %+v", task)
 				if err != nil {
 					logger.Errorf("Ошибка отправки результата: %v", err)
 				}
