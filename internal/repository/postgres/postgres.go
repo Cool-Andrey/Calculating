@@ -56,7 +56,7 @@ func Set(ctx context.Context, value models.Expressions, pool *pgxpool.Pool) (int
 
 func GetAll(ctx context.Context, pool *pgxpool.Pool) ([]models.Expressions, error) {
 	var res []models.Expressions
-	q := `SELECT id, status, result FROM users`
+	q := `SELECT id, status, result FROM users ORDER BY id`
 	rows, err := pool.Query(ctx, q)
 	if err != nil {
 		return []models.Expressions{}, err
