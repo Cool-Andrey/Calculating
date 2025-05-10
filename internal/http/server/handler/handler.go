@@ -135,12 +135,7 @@ func handlePostResult(w http.ResponseWriter, r *http.Request, logger *zap.Sugare
 	}
 	if status != "Подсчёт" {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
-	err = postgres.ProcessTaskResult(ctx, task, o.In, pool, logger)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		logger.Errorf("Ошибка записи таски в СУБД: %v", err)
+		logger.Warn("Пришла задача для выполненного выражения")
 		return
 	}
 	w.WriteHeader(http.StatusOK)

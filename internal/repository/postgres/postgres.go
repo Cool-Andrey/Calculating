@@ -56,7 +56,7 @@ func Set(ctx context.Context, value models.Expressions, pool *pgxpool.Pool) (int
 
 func GetAll(ctx context.Context, pool *pgxpool.Pool) ([]models.Expressions, error) {
 	var res []models.Expressions
-	q := `SELECT id, status, result FROM users`
+	q := `SELECT id, status, result FROM users ORDER BY id`
 	rows, err := pool.Query(ctx, q)
 	if err != nil {
 		return []models.Expressions{}, err
@@ -87,19 +87,6 @@ func UpdateAST(ctx context.Context, id int, ast []byte, pool *pgxpool.Pool) erro
 	q := `UPDATE users SET ast_data = $1 WHERE id = $2`
 	_, err := pool.Exec(ctx, q, ast, id)
 	return err
-}
-
-func GetExpression(ctx context.Context, id int, pool *pgxpool.Pool) (models.Expression, error) {
-	var res models.Expression
-	q := `SELECT id, status, result, expression, ast_data FROM users WHERE id = $1`
-	err := pool.QueryRow(ctx, q, id).Scan(
-		&res.ID,
-		&res.Status,
-		&res.Result,
-		&res.Expression,
-		&res.ASTData,
-	)
-	return res, err
 }
 
 func GetAllProcessing(ctx context.Context, pool *pgxpool.Pool) ([]models.Expression, error) {

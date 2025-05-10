@@ -27,6 +27,8 @@ func (a *Application) Run(ctx context.Context) int {
 	defer logger.Sync()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+	defer stop()
 	o := orchestrator.NewOrchestrator()
 	pool, err := pgxpool.New(context.Background(), a.config.URLdb)
 	if err != nil {
@@ -44,10 +46,7 @@ func (a *Application) Run(ctx context.Context) int {
 	shutdownFunc := server.Run(logger, a.config.Addr, o, a.config, pool)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-	defer stop()
-
 	<-c
-	cancel()
 	err = shutdownFunc(ctx)
 	if err != nil {
 		logger.Errorf("Ошибка при закрытии сервера: %v", err)
