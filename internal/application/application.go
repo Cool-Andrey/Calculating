@@ -19,7 +19,7 @@ type Application struct {
 
 func New() *Application {
 	return &Application{
-		config: config.ConfigFromEnv(),
+		config: config.ConfigFromEnv(false),
 	}
 }
 
@@ -38,7 +38,7 @@ func (a *Application) Run(ctx context.Context) int {
 	if err = goose.SetDialect("postgres"); err != nil {
 		logger.Fatalf("Ошибка постановки диалекта Postgres: %v", err)
 	}
-	if err = goose.Up(db, "db/migrations"); err != nil {
+	if err = goose.Up(db, "db/migrations/"); err != nil {
 		logger.Fatalf("Ошибка наката миграции: %v", err)
 	}
 	g := grpc.NewServer(logger, a.config, o.Out, o.In, pool)

@@ -17,6 +17,7 @@ type Delay struct {
 }
 
 type GRPCConfig struct {
+	Host           string
 	Port           int
 	Ping           time.Duration
 	ComputingPower int
@@ -49,13 +50,14 @@ type envConfig struct {
 		CleanFile string `env:"DEL_FILE" env-default:"False"`
 	}
 	GRPCConfig struct {
-		Port           int `env:"GRPC_PORT" env-default:"50051"`
-		Ping           int `env:"PING" env-default:"1000"`
-		ComputingPower int `env:"COMPUTING_POWER" env-default:"2"`
+		Host           string `env:"GRPC_HOST" env-default:"0.0.0.0"`
+		Port           int    `env:"GRPC_PORT" env-default:"50051"`
+		Ping           int    `env:"PING" env-default:"1000"`
+		ComputingPower int    `env:"COMPUTING_POWER" env-default:"2"`
 	}
 }
 
-func ConfigFromEnv() *Config {
+func ConfigFromEnv(agent bool) *Config {
 	var env envConfig
 	err := cleanenv.ReadConfig("config.env", &env)
 	switch {
@@ -73,17 +75,19 @@ func ConfigFromEnv() *Config {
 			log.Fatalf("Ошибка чтения переменных окружения: %s", err)
 		}
 	}
-	if env.URLdb == "" {
-		if env.DBUser == "" || env.DBPassword == "" || env.DBName == "" {
-			log.Fatal("Параметры DATABASE_USER, DATABASE_PASSWORD и DATABASE_NAME должны быть указаны! В ином случае заполните DATABASE_URL!")
+	if !agent {
+		if env.URLdb == "" {
+			if env.DBUser == "" || env.DBPassword == "" || env.DBName == "" {
+				log.Fatal("Параметры DATABASE_USER, DATABASE_PASSWORD и DATABASE_NAME должны быть указаны! В ином случае заполните DATABASE_URL!")
+			}
+			pgURL := url.URL{
+				Scheme: "postgres",
+				User:   url.UserPassword(env.DBUser, env.DBPassword),
+				Host:   fmt.Sprintf("%s:%s", env.DBHost, env.DBPort),
+				Path:   env.DBName,
+			}
+			env.URLdb = pgURL.String()
 		}
-		pgURL := url.URL{
-			Scheme: "postgres",
-			User:   url.UserPassword(env.DBUser, env.DBPassword),
-			Host:   fmt.Sprintf("%s:%s", env.DBHost, env.DBPort),
-			Path:   env.DBName,
-		}
-		env.URLdb = pgURL.String()
 	}
 	return &Config{
 		Addr:  "8080",
@@ -103,6 +107,7 @@ func ConfigFromEnv() *Config {
 			Port:           env.GRPCConfig.Port,
 			Ping:           time.Duration(env.GRPCConfig.Ping) * time.Millisecond,
 			ComputingPower: env.GRPCConfig.ComputingPower,
+			Host:           env.GRPCConfig.Host,
 		},
 	}
 }

@@ -7,27 +7,36 @@ services:
     ports:
       - '8080:8080' # Ставьте любой порт, какой хотите.
     environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_USER=Vasya
+      - DATABASE_PASSWORD=123456789
+      - DATABASE_NAME=proba
       - MODE_CONSOLE=DEV #Необязательно. Можете посмотреть README
-#      - TIME_ADDITION_MS=100
-#      - TIME_SUBTRACTION_MS=100
-#      - TIME_MULTIPLICATIONS_MS=100
-#      - TIME_DIVISIONS_MS=100
+      - TIME_ADDITION_MS=100
+      - TIME_SUBTRACTION_MS=100
+      - TIME_MULTIPLICATIONS_MS=100
+      - TIME_DIVISIONS_MS=100
       - WRITE_FILE=FALSE
     depends_on:
-      - tests
+      postgres:
+        condition: service_healthy
   agent:
     build:
       context: .
       dockerfile: build/agent/Dockerfile
     environment:
-      - MODE_CONSOLE=DEV #Необязательно. Можете посмотреть README
-      - WRITE_FILE=FALSE
-#      - PING=100
+      - GRPC_HOST=orchestrator
       - COMPUTING_POWER=25 #Как пример. В Dockerfile ставится по умолчанию 2.
-      - URL=http://orchestrator:8080
     depends_on:
-      - orchestrator
-  tests:
-    build:
-      context: .
-      dockerfile: build/tests/Dockerfile
+    -  orchestrator
+  postgres:
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=Vasya       # пользователь БД
+      - POSTGRES_PASSWORD=123456789  # пароль
+      - POSTGRES_DB=proba        # название БД
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U Andrey -d proba"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

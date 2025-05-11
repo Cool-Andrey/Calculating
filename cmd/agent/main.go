@@ -16,10 +16,11 @@ import (
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	conf := config.ConfigFromEnv()
+	conf := config.ConfigFromEnv(true)
 	logger := config.SetupLogger(conf.Mode)
 	cred := grpc.WithTransportCredentials(insecure.NewCredentials())
-	addr := fmt.Sprintf("0.0.0.0:%d", conf.GRPC.Port)
+	addr := fmt.Sprintf("%s:%d", conf.GRPC.Host, conf.GRPC.Port)
+	logger.Debugf("Запускаю стрим на адрес: %s", addr)
 	client, err := grpc.NewClient(addr, cred)
 	if err != nil {
 		logger.Fatalf("Ошибка создания клиента: %v", err)

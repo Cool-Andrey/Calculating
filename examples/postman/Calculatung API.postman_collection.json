@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "56533ee2-9f25-40c4-bdf1-3b538a22ebee",
+		"_postman_id": "65bfb1e4-7b33-4fed-8ae3-ee60e34648c2",
 		"name": "Calculatung API",
 		"description": "Здесь приведены примеры запросов на мой сервер. Названия сделаны на английском, т.к. мне кажется, что так более понятно",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
@@ -232,6 +232,9 @@
 								}
 							}
 						},
+						"url": {
+							"raw": ""
+						},
 						"description": "Возвратит `201`, и в результате выражения напишет ошибку пустое выражение/json"
 					},
 					"response": []
@@ -357,69 +360,6 @@
 				}
 			],
 			"description": "Варианты запросов пользователя. Везде есть ошибка `500` - означает внутреннюю ошибку сервера"
-		},
-		{
-			"name": "Internal",
-			"item": [
-				{
-					"name": "Get task",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://127.0.0.1:8080/internal/task",
-							"protocol": "http",
-							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
-							],
-							"port": "8080",
-							"path": [
-								"internal",
-								"task"
-							]
-						},
-						"description": "Это пример запроса задачи. Подробнее в README. `200` - есть задча и оркестратор её отдал. `404` - задачи нет, `505` - внутренняя ошибка сервера"
-					},
-					"response": []
-				},
-				{
-					"name": "Take result",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"task\":{\r\n        \"id\":2,\r\n        \"operation\":\"*\",\r\n        \"arg1\":2,\r\n        \"arg2\":2,\r\n        \"Result\":4,\r\n        \"operation_time\":1000000000\r\n    }\r\n}\r\n",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://127.0.0.1:8080/internal/task",
-							"protocol": "http",
-							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
-							],
-							"port": "8080",
-							"path": [
-								"internal",
-								"task"
-							]
-						},
-						"description": "Пример отдачи выражения. `200` - записал результат, `404` - не нашёл такого id, `422` - результат уже есть, `500` - внутренняя ошибка сервера."
-					},
-					"response": []
-				}
-			],
-			"description": "Это примеры запросов от агента к оркестратору"
 		}
 	],
 	"event": [

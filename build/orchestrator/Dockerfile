@@ -12,8 +12,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o orchestrator ./cmd/orchestrator
 
 FROM alpine:3.21
 
-COPY --from=build /app/orchestrator /app/orchestrator
+COPY --from=build /app/ .
+COPY --from=build /app/db/migrations/ ./db/migrations/
 ENV WRITE_FILE=FALSE
 EXPOSE 8080
-ENTRYPOINT ["/app/orchestrator"]
+ENTRYPOINT ["./orchestrator"]
 
