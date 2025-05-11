@@ -24,11 +24,12 @@ type GRPCConfig struct {
 }
 
 type Config struct {
-	Addr  string
-	URLdb string
-	Delay Delay
-	Mode  Mode
-	GRPC  GRPCConfig
+	Addr      string
+	JWTSecret string
+	URLdb     string
+	Delay     Delay
+	Mode      Mode
+	GRPC      GRPCConfig
 }
 
 type envConfig struct {
@@ -38,6 +39,7 @@ type envConfig struct {
 	DBUser     string `env:"DATABASE_USER"`
 	DBPassword string `env:"DATABASE_PASSWORD"`
 	DBName     string `env:"DATABASE_NAME"`
+	JWTSecret  string `env:"JWT_SECRET" env-required:"true"`
 	Delay      struct {
 		Plus     int `env:"TIME_ADDITION_MS" env-default:"1000"`
 		Minus    int `env:"TIME_SUBTRACTION_MS" env-default:"1000"`
@@ -90,8 +92,9 @@ func ConfigFromEnv(agent bool) *Config {
 		}
 	}
 	return &Config{
-		Addr:  "8080",
-		URLdb: env.URLdb,
+		Addr:      "8080",
+		URLdb:     env.URLdb,
+		JWTSecret: env.JWTSecret,
 		Delay: Delay{
 			Plus:     time.Duration(env.Delay.Plus) * time.Millisecond,
 			Minus:    time.Duration(env.Delay.Minus) * time.Millisecond,

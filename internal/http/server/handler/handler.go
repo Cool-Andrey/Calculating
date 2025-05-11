@@ -8,6 +8,7 @@ import (
 	"github.com/Cool-Andrey/Calculating/internal/repository/postgres"
 	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
 	"github.com/Cool-Andrey/Calculating/pkg/calc"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -38,6 +39,11 @@ type ResoponseId struct {
 
 type ResultBad struct {
 	Err string `json:"error"`
+}
+
+type User struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
 func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, o *orchestrator.Orchestrator, conn *pgxpool.Pool) {
@@ -145,6 +151,103 @@ func GetAllExpressions(w http.ResponseWriter, r *http.Request, logger *zap.Sugar
 	} else {
 		fmt.Fprint(w, string(jsonBytes))
 	}
+}
+
+func Register(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, pool *pgxpool.Pool) {
+	if r.Method != http.MethodPost {
+		logger.Error("Попытка зарегистрироваться не методом POST")
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	var user User
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil && err != io.EOF {
+		w.WriteHeader(422)
+		logger.Errorf("Ошибка чтения json: %v", err)
+		errj := calc.ErrInvalidJson
+		res := ResultBad{Err: errj.Error()}
+		jsonBytes, _ := json.Marshal(res)
+		fmt.Fprint(w, string(jsonBytes))
+		time.Sleep(1)
+		return
+	} else if err == io.EOF {
+		w.WriteHeader(422)
+		errj := calc.ErrEmptyJson
+		res := ResultBad{Err: errj.Error()}
+		logger.Error("Пустой запрос!")
+		jsonBytes, _ := json.Marshal(res)
+		fmt.Fprint(w, string(jsonBytes))
+		time.Sleep(1)
+		return
+	}
+	ctx := r.Context()
+	err = postgres.CreateUser(ctx, user.Login, user.Password, pool)
+	if err != nil {
+		w.WriteHeader(500)
+		logger.Errorf("Ошибка записи в СУБД нового юзера: %v", err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func Login(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, pool *pgxpool.Pool, secret string) {
+	if r.Method != http.MethodPost {
+		logger.Error("Попытка войти не методом POST")
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	var user User
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil && err != io.EOF {
+		w.WriteHeader(422)
+		logger.Errorf("Ошибка чтения json: %v", err)
+		errj := calc.ErrInvalidJson
+		res := ResultBad{Err: errj.Error()}
+		jsonBytes, _ := json.Marshal(res)
+		fmt.Fprint(w, string(jsonBytes))
+		time.Sleep(1)
+		return
+	} else if err == io.EOF {
+		w.WriteHeader(422)
+		errj := calc.ErrEmptyJson
+		res := ResultBad{Err: errj.Error()}
+		logger.Error("Пустой запрос!")
+		jsonBytes, _ := json.Marshal(res)
+		fmt.Fprint(w, string(jsonBytes))
+		time.Sleep(1)
+		return
+	}
+	ctx := r.Context()
+	ok, err := postgres.VerifyUser(ctx, user.Login, user.Password, pool)
+	if err != nil {
+		w.WriteHeader(500)
+		logger.Errorf("Ошибка проверки учетной записи в СУБД: %v", err)
+		return
+	}
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		logger.Debug("Учётную запись не нашли в СУБД")
+		return
+	}
+	jwtToken, err := GenerateJWT(secret)
+	if err != nil {
+		w.WriteHeader(500)
+		logger.Errorf("Ошибка формирования jwt: %v", err)
+	}
+	response := map[string]string{"token": jwtToken}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		w.WriteHeader(500)
+		logger.Errorf("Ошибка маршалинга jwt: %v", err)
+	}
+}
+
+func GenerateJWT(secret string) (string, error) {
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"exp": time.Now().Add(time.Hour * 1).Unix(),
+	})
+	return claims.SignedString([]byte(secret))
 }
 
 func Decorate(next http.Handler, ds ...Decorator) http.Handler {
