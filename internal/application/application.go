@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"github.com/Cool-Andrey/Calculating/internal/config"
+	"github.com/Cool-Andrey/Calculating/internal/grpc"
 	"github.com/Cool-Andrey/Calculating/internal/http/server"
 	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -25,9 +26,7 @@ func New() *Application {
 func (a *Application) Run(ctx context.Context) int {
 	logger := config.SetupLogger(a.config.Mode)
 	defer logger.Sync()
-	ctx, cancel := context.WithCancel(context.Background())
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
 	defer stop()
 	o := orchestrator.NewOrchestrator()
 	pool, err := pgxpool.New(context.Background(), a.config.URLdb)
@@ -39,11 +38,14 @@ func (a *Application) Run(ctx context.Context) int {
 	if err = goose.SetDialect("postgres"); err != nil {
 		logger.Fatalf("Ошибка постановки диалекта Postgres: %v", err)
 	}
-	if err = goose.Up(db, "internal/db/migrations"); err != nil {
+	if err = goose.Up(db, "db/migrations"); err != nil {
 		logger.Fatalf("Ошибка наката миграции: %v", err)
 	}
+	g := grpc.NewServer(logger, a.config, o.Out, o.In, pool)
+	go g.Run()
+	logger.Info("Запуск gRPC сервера")
 	o.Recover(ctx, pool, logger)
-	shutdownFunc := server.Run(logger, a.config.Addr, o, a.config, pool)
+	shutdownFunc := server.Run(logger, a.config.Addr, o, pool)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c

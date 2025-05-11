@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Cool-Andrey/Calculating/internal/config"
 	"github.com/Cool-Andrey/Calculating/internal/models"
 	"github.com/Cool-Andrey/Calculating/internal/repository/postgres"
 	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
@@ -88,70 +87,6 @@ func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogg
 	}
 	o.Calculate(ctx, request.Expression, id, logger, conn)
 	time.Sleep(1) // Если знаете, как без этого исправить тот факт, что time.duration() в server.go возвращает 0, буду рад! Сам промучался, так и не найдя решение. Буду премного благодарен за совет!
-}
-
-func GiveTask(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, o *orchestrator.Orchestrator, delay config.Delay, pool *pgxpool.Pool) {
-	switch r.Method {
-	case http.MethodGet:
-		handleGetTask(w, logger, o, delay)
-	case http.MethodPost:
-		handlePostResult(w, r, logger, o, pool)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
-}
-
-func handleGetTask(w http.ResponseWriter, logger *zap.SugaredLogger, o *orchestrator.Orchestrator, delay config.Delay) {
-	select {
-	case task := <-o.Out:
-		setOperationTime(&task, delay)
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(models.TaskWrapper{Task: task}); err != nil {
-			logger.Errorf("Ошибка кодирования в json задачи: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-	}
-}
-
-func handlePostResult(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, o *orchestrator.Orchestrator, pool *pgxpool.Pool) {
-	taskRes := new(models.TaskWrapper)
-	if err := json.NewDecoder(r.Body).Decode(taskRes); err != nil {
-		logger.Errorf("Ошибка анмаршалинга json: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	task := taskRes.Task
-	ctx := r.Context()
-	status, err := postgres.GetStatus(ctx, task.Id, pool)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			logger.Errorf("Ошибка запроса статуса выражения к СУБД: %v", err)
-			return
-		}
-	}
-	if status != "Подсчёт" {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		logger.Warn("Пришла задача для выполненного выражения")
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-func setOperationTime(task *models.Task, delay config.Delay) {
-	switch task.Operation {
-	case "+":
-		task.OperationTime = delay.Plus
-	case "-":
-		task.OperationTime = delay.Minus
-	case "*":
-		task.OperationTime = delay.Multiple
-	case "/":
-		task.OperationTime = delay.Divide
-	}
 }
 
 func GetExpression(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, pool *pgxpool.Pool) {

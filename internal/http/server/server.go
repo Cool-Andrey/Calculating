@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"github.com/Cool-Andrey/Calculating/internal/config"
 	"github.com/Cool-Andrey/Calculating/internal/http/server/handler"
 	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,13 +10,10 @@ import (
 	"time"
 )
 
-func newHandler(logger *zap.SugaredLogger, o *orchestrator.Orchestrator, config *config.Config, pool *pgxpool.Pool) http.Handler {
+func newHandler(logger *zap.SugaredLogger, o *orchestrator.Orchestrator, pool *pgxpool.Pool) http.Handler {
 	muxHandler := http.NewServeMux()
 	muxHandler.HandleFunc("/api/v1/calculate", func(w http.ResponseWriter, r *http.Request) {
 		handler.CalcHandler(w, r, logger, o, pool)
-	})
-	muxHandler.HandleFunc("/internal/task", func(w http.ResponseWriter, r *http.Request) {
-		handler.GiveTask(w, r, logger, o, config.Delay, pool)
 	})
 	muxHandler.HandleFunc("/api/v1/expressions/", func(w http.ResponseWriter, r *http.Request) {
 		handler.GetExpression(w, r, logger, pool)
@@ -28,8 +24,8 @@ func newHandler(logger *zap.SugaredLogger, o *orchestrator.Orchestrator, config 
 	return handler.Decorate(muxHandler, LoggingMiddleware(logger))
 }
 
-func Run(logger *zap.SugaredLogger, addr string, o *orchestrator.Orchestrator, configVar *config.Config, pool *pgxpool.Pool) func(ctx context.Context) error {
-	Handler := newHandler(logger, o, configVar, pool)
+func Run(logger *zap.SugaredLogger, addr string, o *orchestrator.Orchestrator, pool *pgxpool.Pool) func(ctx context.Context) error {
+	Handler := newHandler(logger, o, pool)
 	server := &http.Server{Addr: ":" + addr, Handler: Handler}
 	ch := make(chan error, 1)
 	go func() {

@@ -71,7 +71,7 @@ func (o *Orchestrator) handleError(ctx context.Context, id int, pool *pgxpool.Po
 	}
 
 	if _, dbErr := postgres.Set(ctx, models.Expressions{
-		Id:     id,
+		Id:     int64(id),
 		Status: status,
 		Result: result,
 	}, pool); dbErr != nil {
@@ -81,13 +81,13 @@ func (o *Orchestrator) handleError(ctx context.Context, id int, pool *pgxpool.Po
 
 func (o *Orchestrator) handleSuccess(ctx context.Context, id int, pool *pgxpool.Pool, result float64, logger *zap.SugaredLogger) {
 	resStr := strconv.FormatFloat(result, 'f', 2, 64)
-	currentStatus, err := postgres.GetStatus(ctx, id, pool)
+	currentStatus, err := postgres.GetStatus(ctx, int64(id), pool)
 	if err != nil || currentStatus != "Подсчёт" {
 		logger.Warnf("Попытка обновить неактуальную задачу ID %d", id)
 		return
 	}
 	if _, err := postgres.Set(ctx, models.Expressions{
-		Id:     id,
+		Id:     int64(id),
 		Status: "Выполнено",
 		Result: resStr,
 	}, pool); err != nil {
@@ -114,13 +114,13 @@ func (o *Orchestrator) Recover(ctx context.Context, pool *pgxpool.Pool, logger *
 		ast, err := Calc.ParseASTFromJSON(expr.ASTData)
 		if err != nil {
 			logger.Errorf("Некорректный AST для ID %d: %v", expr.ID, err)
-			o.handleError(ctx, expr.ID, pool, errors.New("Что-то пошло не так"), logger)
+			o.handleError(ctx, int(expr.ID), pool, errors.New("Что-то пошло не так"), logger)
 			continue
 		}
 		go func() {
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
-			go Calc.Process(ctx, ast, o.Out, o.In, o.Res, o.ErrorsCh, o.Ready, expr.ID, pool, logger)
+			go Calc.Process(ctx, ast, o.Out, o.In, o.Res, o.ErrorsCh, o.Ready, int(expr.ID), pool, logger)
 			select {
 			case <-ctx.Done():
 				logger.Warn("Преждевременная отмена")
@@ -132,11 +132,11 @@ func (o *Orchestrator) Recover(ctx context.Context, pool *pgxpool.Pool, logger *
 			select {
 			case <-ctx.Done():
 				logger.Warn("Отмена во время записи результата")
-				o.handleError(ctx, expr.ID, pool, context.Canceled, logger)
+				o.handleError(ctx, int(expr.ID), pool, context.Canceled, logger)
 			case err = <-o.ErrorsCh:
-				o.handleError(ctx, expr.ID, pool, err, logger)
+				o.handleError(ctx, int(expr.ID), pool, err, logger)
 			case res = <-o.Res:
-				o.handleSuccess(ctx, expr.ID, pool, res, logger)
+				o.handleSuccess(ctx, int(expr.ID), pool, res, logger)
 			}
 			logger.Debug("Оркестратор завершил работу")
 		}()

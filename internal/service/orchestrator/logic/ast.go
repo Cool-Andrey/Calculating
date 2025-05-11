@@ -161,7 +161,7 @@ func calcLvl(
 		Operation: n.value,
 		Arg1:      left,
 		Arg2:      right,
-		Id:        id,
+		Id:        int64(id),
 	}
 	logger.Debugf("Отдал операцию:%.2f%s%.2f", task.Arg1, task.Operation, task.Arg2)
 	select {

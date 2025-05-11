@@ -16,11 +16,18 @@ type Delay struct {
 	Divide   time.Duration
 }
 
+type GRPCConfig struct {
+	Port           int
+	Ping           time.Duration
+	ComputingPower int
+}
+
 type Config struct {
 	Addr  string
 	URLdb string
 	Delay Delay
 	Mode  Mode
+	GRPC  GRPCConfig
 }
 
 type envConfig struct {
@@ -40,6 +47,11 @@ type envConfig struct {
 		Console   string `env:"MODE_CONSOLE" env-default:"Dev"`
 		File      string `env:"MODE_FILE" env-default:"Prod"`
 		CleanFile string `env:"DEL_FILE" env-default:"False"`
+	}
+	GRPCConfig struct {
+		Port           int `env:"GRPC_PORT" env-default:"50051"`
+		Ping           int `env:"PING" env-default:"1000"`
+		ComputingPower int `env:"COMPUTING_POWER" env-default:"2"`
 	}
 }
 
@@ -86,6 +98,11 @@ func ConfigFromEnv() *Config {
 			Console:   env.Mode.Console,
 			File:      env.Mode.File,
 			CleanFile: env.Mode.CleanFile,
+		},
+		GRPC: GRPCConfig{
+			Port:           env.GRPCConfig.Port,
+			Ping:           time.Duration(env.GRPCConfig.Ping) * time.Millisecond,
+			ComputingPower: env.GRPCConfig.ComputingPower,
 		},
 	}
 }

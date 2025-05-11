@@ -5,7 +5,7 @@ import (
 )
 
 type Task struct {
-	Id            int     `json:"id"`
+	Id            int64   `json:"id"`
 	Operation     string  `json:"operation"`
 	Arg1          float64 `json:"arg1"`
 	Arg2          float64 `json:"arg2"`
@@ -18,13 +18,13 @@ type TaskWrapper struct {
 }
 
 type Expressions struct {
-	Id     int    `json:"id"`
+	Id     int64  `json:"id"`
 	Status string `json:"status"`
 	Result string `json:"result"`
 }
 
 type Expression struct {
-	ID         int    `json:"id"`
+	ID         int64  `json:"id"`
 	Status     string `json:"status"`
 	Result     string `json:"result"`
 	Expression string `json:"expression"`

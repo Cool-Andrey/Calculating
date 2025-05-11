@@ -38,7 +38,7 @@ func ProcessTaskResult(ctx context.Context, task models.Task, in chan float64, p
 	return tx.Commit(ctx)
 }
 
-func Set(ctx context.Context, value models.Expressions, pool *pgxpool.Pool) (int, error) {
+func Set(ctx context.Context, value models.Expressions, pool *pgxpool.Pool) (int64, error) {
 	if value.Result == "" {
 		q := `INSERT INTO users(status) VALUES($1) RETURNING id`
 		var id int
@@ -46,7 +46,7 @@ func Set(ctx context.Context, value models.Expressions, pool *pgxpool.Pool) (int
 		if err != nil {
 			return 0, err
 		}
-		return id, nil
+		return int64(id), nil
 	} else {
 		q := `UPDATE users SET status = $2, result = $3 WHERE id = $1`
 		_, err := pool.Exec(ctx, q, value.Id, value.Status, value.Result)
@@ -127,7 +127,7 @@ func GetProcTasks(ctx context.Context, pool *pgxpool.Pool) ([]models.Expression,
 	return expressions, nil
 }
 
-func GetStatus(ctx context.Context, id int, pool *pgxpool.Pool) (string, error) {
+func GetStatus(ctx context.Context, id int64, pool *pgxpool.Pool) (string, error) {
 	q := `SELECT status FROM users WHERE id = $1`
 	var status string
 	err := pool.QueryRow(ctx, q, id).Scan(&status)

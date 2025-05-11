@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option go_package = "github.com/Cool-Andrey/Calculating/pkg/proto/orchestrator;pb";
+
+service Orchestrator {
+  rpc GiveTakeTask(stream TaskWithResult) returns (stream Task);
+}
+
+message Task {
+  int64 ID = 1;
+  string Operation = 2;
+  double Arg1 = 3;
+  double Arg2 = 4;
+  int64 OperationTime = 5;
+}
+
+message TaskWithResult {
+  int64 ID = 1;
+  string Operation = 2;
+  double Arg1 = 3;
+  double Arg2 = 4;
+  double Result = 5;
+  int64 OperationTime = 6;
+}
