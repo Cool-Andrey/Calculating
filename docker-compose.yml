@@ -17,6 +17,7 @@ services:
       - TIME_MULTIPLICATIONS_MS=100
       - TIME_DIVISIONS_MS=100
       - WRITE_FILE=FALSE
+      - JWT_SECRET=super_secret_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,6 +28,7 @@ services:
     environment:
       - GRPC_HOST=orchestrator
       - COMPUTING_POWER=25 #Как пример. В Dockerfile ставится по умолчанию 2.
+      - JWT_SECRET=super_secret_key
     depends_on:
     -  orchestrator
   postgres:
@@ -35,8 +37,13 @@ services:
       - POSTGRES_USER=Vasya       # пользователь БД
       - POSTGRES_PASSWORD=123456789  # пароль
       - POSTGRES_DB=proba        # название БД
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U Andrey -d proba"]
+      test: ["CMD-SHELL", "pg_isready -U Vasya -d proba"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+#volumes:
+#  postgres_data:

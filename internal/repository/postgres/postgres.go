@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"github.com/Cool-Andrey/Calculating/internal/models"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -149,6 +151,9 @@ func VerifyUser(ctx context.Context, login, password string, pool *pgxpool.Pool)
 	var dbHash string
 	q := `SELECT password_hash FROM users WHERE login = $1`
 	if err := pool.QueryRow(ctx, q, login).Scan(&dbHash); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
 		return false, err
 	}
 	err := bcrypt.CompareHashAndPassword([]byte(dbHash), []byte(password))
