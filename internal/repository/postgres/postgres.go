@@ -2,15 +2,18 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"github.com/Cool-Andrey/Calculating/internal/models"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"strconv"
 )
 
 func Get(ctx context.Context, key int, pool *pgxpool.Pool) (models.Expressions, error) {
 	res := models.Expressions{}
-	q := `SELECT id, status, COALESCE(result, '') FROM users WHERE id = $1`
+	q := `SELECT id, status, COALESCE(result, '') FROM expressions WHERE id = $1`
 	err := pool.QueryRow(ctx, q, key).Scan(&res.Id, &res.Status, &res.Result)
 	return res, err
 }
@@ -23,7 +26,7 @@ func ProcessTaskResult(ctx context.Context, task models.Task, in chan float64, p
 	defer tx.Rollback(ctx)
 	resStr := strconv.FormatFloat(task.Result, 'f', -1, 64)
 	if _, err := tx.Exec(ctx,
-		`UPDATE users 
+		`UPDATE expressions 
          SET result = $1, status = 'Выполнено'
          WHERE id = $2`,
 		resStr, task.Id); err != nil {
@@ -40,7 +43,7 @@ func ProcessTaskResult(ctx context.Context, task models.Task, in chan float64, p
 
 func Set(ctx context.Context, value models.Expressions, pool *pgxpool.Pool) (int64, error) {
 	if value.Result == "" {
-		q := `INSERT INTO users(status) VALUES($1) RETURNING id`
+		q := `INSERT INTO expressions(status) VALUES($1) RETURNING id`
 		var id int
 		err := pool.QueryRow(ctx, q, value.Status).Scan(&id)
 		if err != nil {
@@ -48,7 +51,7 @@ func Set(ctx context.Context, value models.Expressions, pool *pgxpool.Pool) (int
 		}
 		return int64(id), nil
 	} else {
-		q := `UPDATE users SET status = $2, result = $3 WHERE id = $1`
+		q := `UPDATE expressions SET status = $2, result = $3 WHERE id = $1`
 		_, err := pool.Exec(ctx, q, value.Id, value.Status, value.Result)
 		return value.Id, err
 	}
@@ -56,7 +59,7 @@ func Set(ctx context.Context, value models.Expressions, pool *pgxpool.Pool) (int
 
 func GetAll(ctx context.Context, pool *pgxpool.Pool) ([]models.Expressions, error) {
 	var res []models.Expressions
-	q := `SELECT id, status, result FROM users ORDER BY id`
+	q := `SELECT id, status, result FROM expressions ORDER BY id`
 	rows, err := pool.Query(ctx, q)
 	if err != nil {
 		return []models.Expressions{}, err
@@ -74,7 +77,7 @@ func GetAll(ctx context.Context, pool *pgxpool.Pool) ([]models.Expressions, erro
 }
 
 func SetWithExpression(ctx context.Context, value models.Expressions, expression string, pool *pgxpool.Pool) (int, error) {
-	q := `INSERT INTO users(status, expression) VALUES($1, $2) RETURNING id`
+	q := `INSERT INTO expressions(status, expression) VALUES($1, $2) RETURNING id`
 	var id int
 	err := pool.QueryRow(ctx, q, value.Status, expression).Scan(&id)
 	if err != nil {
@@ -84,13 +87,13 @@ func SetWithExpression(ctx context.Context, value models.Expressions, expression
 }
 
 func UpdateAST(ctx context.Context, id int, ast []byte, pool *pgxpool.Pool) error {
-	q := `UPDATE users SET ast_data = $1 WHERE id = $2`
+	q := `UPDATE expressions SET ast_data = $1 WHERE id = $2`
 	_, err := pool.Exec(ctx, q, ast, id)
 	return err
 }
 
 func GetAllProcessing(ctx context.Context, pool *pgxpool.Pool) ([]models.Expression, error) {
-	q := `SELECT id, expression, ast_data FROM users 
+	q := `SELECT id, expression, ast_data FROM expressions 
          WHERE status = 'Подсчёт'`
 	rows, err := pool.Query(ctx, q)
 	if err != nil {
@@ -110,7 +113,7 @@ func GetAllProcessing(ctx context.Context, pool *pgxpool.Pool) ([]models.Express
 }
 
 func GetProcTasks(ctx context.Context, pool *pgxpool.Pool) ([]models.Expression, error) {
-	q := `SELECT id, expression, ast_data FROM users WHERE status='Подсчёт'`
+	q := `SELECT id, expression, ast_data FROM expressions WHERE status='Подсчёт'`
 	rows, err := pool.Query(ctx, q)
 	if err != nil {
 		return nil, err
@@ -128,8 +131,31 @@ func GetProcTasks(ctx context.Context, pool *pgxpool.Pool) ([]models.Expression,
 }
 
 func GetStatus(ctx context.Context, id int64, pool *pgxpool.Pool) (string, error) {
-	q := `SELECT status FROM users WHERE id = $1`
+	q := `SELECT status FROM expressions WHERE id = $1`
 	var status string
 	err := pool.QueryRow(ctx, q, id).Scan(&status)
 	return status, err
+}
+
+func CreateUser(ctx context.Context, login, password string, pool *pgxpool.Pool) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	q := `INSERT INTO users(login, password_hash) VALUES($1, $2)`
+	_, err = pool.Exec(ctx, q, login, hash)
+	return err
+}
+
+func VerifyUser(ctx context.Context, login, password string, pool *pgxpool.Pool) (bool, error) {
+	var dbHash string
+	q := `SELECT password_hash FROM users WHERE login = $1`
+	if err := pool.QueryRow(ctx, q, login).Scan(&dbHash); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	err := bcrypt.CompareHashAndPassword([]byte(dbHash), []byte(password))
+	return err == nil, nil
 }

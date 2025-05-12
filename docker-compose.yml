@@ -17,6 +17,7 @@ services:
       - TIME_MULTIPLICATIONS_MS=100
       - TIME_DIVISIONS_MS=100
       - WRITE_FILE=FALSE
+      - JWT_SECRET=super_secret_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,6 +28,7 @@ services:
     environment:
       - GRPC_HOST=orchestrator
       - COMPUTING_POWER=25 #Как пример. В Dockerfile ставится по умолчанию 2.
+      - JWT_SECRET=super_secret_key
     depends_on:
     -  orchestrator
   postgres:
