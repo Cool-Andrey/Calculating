@@ -45,7 +45,7 @@ func (a *Application) Run(ctx context.Context) int {
 	go g.Run()
 	logger.Info("Запуск gRPC сервера")
 	o.Recover(ctx, pool, logger)
-	shutdownFunc := server.Run(logger, a.config.Addr, o, pool)
+	shutdownFunc := server.Run(logger, a.config.Addr, o, pool, a.config.JWTSecret)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c

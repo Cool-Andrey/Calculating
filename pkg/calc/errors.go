@@ -9,6 +9,8 @@ var (
 	ErrInvalidJson     = errors.New("Товарищ пользователь! Проверьте правильность написания json'а")
 	ErrEmptyJson       = errors.New("Пустой запрос!")
 	ErrEmptyExpression = errors.New("Пустое выражение/json!")
+	ErrExpJWTToken     = errors.New("Токен протух")
+	ErrInvalidJWTToken = errors.New("Невалидный токен")
 
 	ErrorMap = map[error]int{
 		ErrInvalidBracket:  422,
