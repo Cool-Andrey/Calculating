@@ -35,8 +35,13 @@ services:
       - POSTGRES_USER=Vasya       # пользователь БД
       - POSTGRES_PASSWORD=123456789  # пароль
       - POSTGRES_DB=proba        # название БД
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U Andrey -d proba"]
+      test: ["CMD-SHELL", "pg_isready -U Vasya -d proba"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+volumes:
+  postgres_data:
