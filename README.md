@@ -192,7 +192,7 @@ Method Not Allowed
 Правильное выражение
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
---header "Authorization: Bearer ваш_jwt_токен_здесь \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{
     "expression" : "2+5/11+65897*989+6582+999*222-88245/2.4"
@@ -208,7 +208,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
 Некорректное выражение
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
---header "Authorization: Bearer ваш_jwt_токен_здесь \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{
     "expression": "2+2+"
@@ -224,7 +224,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
 Некорректный json
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
---header "Authorization: Bearer ваш_jwt_токен_здесь \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{
     "expression": "2+2"
@@ -252,7 +252,7 @@ Method Not Allowed
 Пустой запрос
 ```shell
 curl --location '' \
---header "Authorization: Bearer ваш_jwt_токен_здесь \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data ''
 ```
@@ -268,7 +268,7 @@ curl --location '' \
 
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
---header "Authorization: Bearer ваш_jwt_токен_здесь \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{}'
 ```
@@ -282,7 +282,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
 Пустое выражение
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
---header "Authorization: Bearer ваш_jwt_токен_здесь \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{
     "expression" : ""
@@ -321,7 +321,7 @@ Host: 127.0.0.1:8080
 Выражение корректно и записано
 
 ```shell
-curl --header "Authorization: Bearer ваш_jwt_токен_здесь \ 
+curl --header "Authorization: Bearer ваш_jwt_токен_здесь" \ 
 --location 'http://127.0.0.1:8080/api/v1/expressions/1'
 ```
 Код ответа `200`
@@ -338,7 +338,7 @@ curl --header "Authorization: Bearer ваш_jwt_токен_здесь \
 Выражение некорректно
 
 ```shell
-curl --header "Authorization: Bearer ваш_jwt_токен_здесь \ 
+curl --header "Authorization: Bearer ваш_jwt_токен_здесь" \ 
 --location 'http://127.0.0.1:8080/api/v1/expressions/1'
 ```
 
@@ -368,7 +368,7 @@ Host: 127.0.0.1:8080
 ### Примеры curl'ов
 
 ```shell
-curl --header "Authorization: Bearer ваш_jwt_токен_здесь \ 
+curl --header "Authorization: Bearer ваш_jwt_токен_здесь" \ 
 --location 'http://127.0.0.1:8080/api/v1/expressions'
 ```
 
