@@ -7,7 +7,6 @@ import (
 	"github.com/Cool-Andrey/Calculating/internal/repository/postgres"
 	Calc "github.com/Cool-Andrey/Calculating/internal/service/orchestrator/logic"
 	"github.com/Cool-Andrey/Calculating/pkg/calc"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"strconv"
 )
@@ -30,14 +29,14 @@ func NewOrchestrator() *Orchestrator {
 	}
 }
 
-func (o *Orchestrator) TakeExpression(ctx context.Context, expression string, logger *zap.SugaredLogger, id int, pool *pgxpool.Pool) {
-	Calc.Calc(ctx, expression, logger, o.Out, o.In, o.Res, o.ErrorsCh, o.Ready, id, pool)
+func (o *Orchestrator) TakeExpression(ctx context.Context, expression string, logger *zap.SugaredLogger, id int, r *postgres.Repository) {
+	Calc.Calc(ctx, expression, logger, o.Out, o.In, o.Res, o.ErrorsCh, o.Ready, id, r)
 }
 
-func (o *Orchestrator) Calculate(ctx context.Context, expression string, id int, logger *zap.SugaredLogger, pool *pgxpool.Pool) {
+func (o *Orchestrator) Calculate(ctx context.Context, expression string, id int, logger *zap.SugaredLogger, r *postgres.Repository) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	go o.TakeExpression(ctx, expression, logger, id, pool)
+	go o.TakeExpression(ctx, expression, logger, id, r)
 	select {
 	case <-ctx.Done():
 		logger.Warn("Преждевременная отмена")
@@ -49,16 +48,16 @@ func (o *Orchestrator) Calculate(ctx context.Context, expression string, id int,
 	select {
 	case <-ctx.Done():
 		logger.Warn("Отмена во время записи результата")
-		o.handleError(ctx, id, pool, context.Canceled, logger)
+		o.handleError(ctx, id, r, context.Canceled, logger)
 	case err = <-o.ErrorsCh:
-		o.handleError(ctx, id, pool, err, logger)
+		o.handleError(ctx, id, r, err, logger)
 	case res = <-o.Res:
-		o.handleSuccess(ctx, id, pool, res, logger)
+		o.handleSuccess(ctx, id, r, res, logger)
 	}
 	logger.Debug("Оркестратор завершил работу")
 }
 
-func (o *Orchestrator) handleError(ctx context.Context, id int, pool *pgxpool.Pool, err error, logger *zap.SugaredLogger) {
+func (o *Orchestrator) handleError(ctx context.Context, id int, r *postgres.Repository, err error, logger *zap.SugaredLogger) {
 	var status string
 	var result string
 
@@ -70,27 +69,27 @@ func (o *Orchestrator) handleError(ctx context.Context, id int, pool *pgxpool.Po
 		result = "Что-то пошло не так"
 	}
 
-	if _, dbErr := postgres.Set(ctx, models.Expressions{
+	if _, dbErr := r.Set(ctx, models.Expressions{
 		Id:     int64(id),
 		Status: status,
 		Result: result,
-	}, pool); dbErr != nil {
+	}); dbErr != nil {
 		logger.Errorf("Ошибка сохранения ошибки :): %v", dbErr)
 	}
 }
 
-func (o *Orchestrator) handleSuccess(ctx context.Context, id int, pool *pgxpool.Pool, result float64, logger *zap.SugaredLogger) {
+func (o *Orchestrator) handleSuccess(ctx context.Context, id int, r *postgres.Repository, result float64, logger *zap.SugaredLogger) {
 	resStr := strconv.FormatFloat(result, 'f', 2, 64)
-	currentStatus, err := postgres.GetStatus(ctx, int64(id), pool)
+	currentStatus, err := r.GetStatus(ctx, int64(id))
 	if err != nil || currentStatus != "Подсчёт" {
 		logger.Warnf("Попытка обновить неактуальную задачу ID %d", id)
 		return
 	}
-	if _, err := postgres.Set(ctx, models.Expressions{
+	if _, err := r.Set(ctx, models.Expressions{
 		Id:     int64(id),
 		Status: "Выполнено",
 		Result: resStr,
-	}, pool); err != nil {
+	}); err != nil {
 		logger.Error("Ошибка сохранения успешного результата",
 			zap.Error(err),
 			zap.Int("id", id),
@@ -102,8 +101,8 @@ func (o *Orchestrator) handleSuccess(ctx context.Context, id int, pool *pgxpool.
 	}
 }
 
-func (o *Orchestrator) Recover(ctx context.Context, pool *pgxpool.Pool, logger *zap.SugaredLogger) {
-	expressions, err := postgres.GetProcTasks(ctx, pool)
+func (o *Orchestrator) Recover(ctx context.Context, r *postgres.Repository, logger *zap.SugaredLogger) {
+	expressions, err := r.GetProcTasks(ctx)
 	if err != nil {
 		logger.Errorf("Ошибка восстановления: %v", err)
 		return
@@ -114,13 +113,13 @@ func (o *Orchestrator) Recover(ctx context.Context, pool *pgxpool.Pool, logger *
 		ast, err := Calc.ParseASTFromJSON(expr.ASTData)
 		if err != nil {
 			logger.Errorf("Некорректный AST для ID %d: %v", expr.ID, err)
-			o.handleError(ctx, int(expr.ID), pool, errors.New("Что-то пошло не так"), logger)
+			o.handleError(ctx, int(expr.ID), r, errors.New("Что-то пошло не так"), logger)
 			continue
 		}
 		go func() {
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
-			go Calc.Process(ctx, ast, o.Out, o.In, o.Res, o.ErrorsCh, o.Ready, int(expr.ID), pool, logger)
+			go Calc.Process(ctx, ast, o.Out, o.In, o.Res, o.ErrorsCh, o.Ready, int(expr.ID), logger)
 			select {
 			case <-ctx.Done():
 				logger.Warn("Преждевременная отмена")
@@ -132,11 +131,11 @@ func (o *Orchestrator) Recover(ctx context.Context, pool *pgxpool.Pool, logger *
 			select {
 			case <-ctx.Done():
 				logger.Warn("Отмена во время записи результата")
-				o.handleError(ctx, int(expr.ID), pool, context.Canceled, logger)
+				o.handleError(ctx, int(expr.ID), r, context.Canceled, logger)
 			case err = <-o.ErrorsCh:
-				o.handleError(ctx, int(expr.ID), pool, err, logger)
+				o.handleError(ctx, int(expr.ID), r, err, logger)
 			case res = <-o.Res:
-				o.handleSuccess(ctx, int(expr.ID), pool, res, logger)
+				o.handleSuccess(ctx, int(expr.ID), r, res, logger)
 			}
 			logger.Debug("Оркестратор завершил работу")
 		}()

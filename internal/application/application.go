@@ -5,6 +5,7 @@ import (
 	"github.com/Cool-Andrey/Calculating/internal/config"
 	"github.com/Cool-Andrey/Calculating/internal/grpc"
 	"github.com/Cool-Andrey/Calculating/internal/http/server"
+	"github.com/Cool-Andrey/Calculating/internal/repository/postgres"
 	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -41,11 +42,12 @@ func (a *Application) Run(ctx context.Context) int {
 	if err = goose.Up(db, "db/migrations/"); err != nil {
 		logger.Fatalf("Ошибка наката миграции: %v", err)
 	}
-	g := grpc.NewServer(logger, a.config, o.Out, o.In, pool)
+	r := postgres.NewRepository(pool)
+	g := grpc.NewServer(logger, a.config, o.Out, o.In, r)
 	go g.Run()
 	logger.Info("Запуск gRPC сервера")
-	o.Recover(ctx, pool, logger)
-	shutdownFunc := server.Run(logger, a.config.Addr, o, pool, a.config.JWTSecret)
+	o.Recover(ctx, r, logger)
+	shutdownFunc := server.Run(logger, a.config.Addr, o, r, a.config.JWTSecret)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c

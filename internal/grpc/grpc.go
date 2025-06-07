@@ -9,7 +9,6 @@ import (
 	"github.com/Cool-Andrey/Calculating/internal/repository/postgres"
 	pb "github.com/Cool-Andrey/Calculating/pkg/api/proto"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"io"
@@ -26,10 +25,10 @@ type Server struct {
 	delay  config.Delay
 	get    <-chan models.Task
 	insert chan<- float64
-	pool   *pgxpool.Pool
+	r      *postgres.Repository
 }
 
-func NewServer(logger *zap.SugaredLogger, cfg *config.Config, get <-chan models.Task, insert chan<- float64, pool *pgxpool.Pool) *Server {
+func NewServer(logger *zap.SugaredLogger, cfg *config.Config, get <-chan models.Task, insert chan<- float64, r *postgres.Repository) *Server {
 	grpcSrv := grpc.NewServer()
 	srv := &Server{
 		server: grpcSrv,
@@ -38,7 +37,7 @@ func NewServer(logger *zap.SugaredLogger, cfg *config.Config, get <-chan models.
 		delay:  cfg.Delay,
 		get:    get,
 		insert: insert,
-		pool:   pool,
+		r:      r,
 	}
 	pb.RegisterOrchestratorServer(grpcSrv, srv)
 	return srv
@@ -104,7 +103,7 @@ func (s *Server) getTask(ctx context.Context, stream grpc.BidiStreamingServer[pb
 				Arg2:      msg.Arg2,
 				Result:    msg.Result,
 			}
-			status, err := postgres.GetStatus(ctx, task.Id, s.pool)
+			status, err := s.r.GetStatus(ctx, task.Id)
 			if err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
 					s.logger.Warn("Пришла задача для несуществующего выражения")

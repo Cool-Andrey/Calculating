@@ -10,6 +10,8 @@ type Task struct {
 	Arg1          float64 `json:"arg1"`
 	Arg2          float64 `json:"arg2"`
 	Result        float64
+	LeftID        *int64
+	RightID       *int64
 	OperationTime time.Duration `json:"operation_time"`
 }
 

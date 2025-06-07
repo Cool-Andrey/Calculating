@@ -10,7 +10,6 @@ import (
 	"github.com/Cool-Andrey/Calculating/pkg/calc"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -46,7 +45,7 @@ type User struct {
 	Password string `json:"password"`
 }
 
-func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, o *orchestrator.Orchestrator, conn *pgxpool.Pool) {
+func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, o *orchestrator.Orchestrator, rep *postgres.Repository) {
 	request := new(Request)
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if r.Method != http.MethodPost {
@@ -77,7 +76,7 @@ func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogg
 		logger.Debugf("Прочитал: %s", request.Expression)
 	}
 	ctx := r.Context()
-	id, err := postgres.SetWithExpression(ctx, models.Expressions{Status: "Подсчёт"}, request.Expression, conn)
+	id, err := rep.SetWithExpression(ctx, models.Expressions{Status: "Подсчёт"}, request.Expression)
 	if err != nil {
 		w.WriteHeader(500)
 		logger.Errorf("Ошибка записи выражения в СУБД: %v", err)
@@ -91,11 +90,11 @@ func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogg
 		w.WriteHeader(201)
 		fmt.Fprint(w, string(jsonBytes))
 	}
-	o.Calculate(ctx, request.Expression, id, logger, conn)
+	o.Calculate(ctx, request.Expression, id, logger, rep)
 	time.Sleep(1) // Если знаете, как без этого исправить тот факт, что time.duration() в server.go возвращает 0, буду рад! Сам промучался, так и не найдя решение. Буду премного благодарен за совет!
 }
 
-func GetExpression(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, pool *pgxpool.Pool) {
+func GetExpression(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, rep *postgres.Repository) {
 	if r.Method != http.MethodGet {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		logger.Errorf("Попытка получить выражение не методом GET.")
@@ -110,7 +109,7 @@ func GetExpression(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLo
 		return
 	}
 	logger.Debugf("Преобразовал ID: %v", id)
-	res, err := postgres.Get(r.Context(), id, pool)
+	res, err := rep.Get(r.Context(), id)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		logger.Errorf("Ошибка запроса к СУБД: %v", err)
 	}
@@ -131,13 +130,13 @@ func GetExpression(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLo
 	}
 }
 
-func GetAllExpressions(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, pool *pgxpool.Pool) {
+func GetAllExpressions(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, rep *postgres.Repository) {
 	if r.Method != http.MethodGet {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		logger.Errorf("Попытка получить выражение не методом GET")
 		return
 	}
-	expressions, err := postgres.GetAll(r.Context(), pool)
+	expressions, err := rep.GetAll(r.Context())
 	if err != nil {
 		w.WriteHeader(500)
 		logger.Errorf("Ошибка запроса к СУБД: %v", err)
@@ -153,7 +152,7 @@ func GetAllExpressions(w http.ResponseWriter, r *http.Request, logger *zap.Sugar
 	}
 }
 
-func Register(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, pool *pgxpool.Pool) {
+func Register(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, rep *postgres.Repository) {
 	if r.Method != http.MethodPost {
 		logger.Error("Попытка зарегистрироваться не методом POST")
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
@@ -181,7 +180,7 @@ func Register(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger,
 		return
 	}
 	ctx := r.Context()
-	err = postgres.CreateUser(ctx, user.Login, user.Password, pool)
+	err = rep.CreateUser(ctx, user.Login, user.Password)
 	if err != nil {
 		w.WriteHeader(500)
 		logger.Errorf("Ошибка записи в СУБД нового юзера: %v", err)
@@ -190,7 +189,7 @@ func Register(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger,
 	w.WriteHeader(http.StatusOK)
 }
 
-func Login(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, pool *pgxpool.Pool, secret string) {
+func Login(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, rep *postgres.Repository, secret string) {
 	if r.Method != http.MethodPost {
 		logger.Error("Попытка войти не методом POST")
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
@@ -218,7 +217,7 @@ func Login(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, po
 		return
 	}
 	ctx := r.Context()
-	ok, err := postgres.VerifyUser(ctx, user.Login, user.Password, pool)
+	ok, err := rep.VerifyUser(ctx, user.Login, user.Password)
 	if err != nil {
 		w.WriteHeader(500)
 		logger.Errorf("Ошибка проверки учетной записи в СУБД: %v", err)

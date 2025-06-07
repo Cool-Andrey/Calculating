@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/Cool-Andrey/Calculating/pkg/calc"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"io"
 	"net/http"

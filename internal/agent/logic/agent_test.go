@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"github.com/Cool-Andrey/Calculating/internal/models"
 	"sync"
 	"testing"
 	"time"
@@ -155,8 +156,8 @@ func TestWorker(t *testing.T) {
 			expected_num: 2,
 		},
 	}
-	tasks := make(chan Task, 5)
-	results := make(chan Task, 5)
+	tasks := make(chan models.Task, 5)
+	results := make(chan models.Task, 5)
 	wg := &sync.WaitGroup{}
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
@@ -165,7 +166,7 @@ func TestWorker(t *testing.T) {
 	opTime := time.Millisecond
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			task := Task{Operation: test.operation, Arg1: test.arg1, Arg2: test.arg2, OperationTime: opTime}
+			task := models.Task{Operation: test.operation, Arg1: test.arg1, Arg2: test.arg2, OperationTime: opTime}
 			tasks <- task
 			result := <-results
 			if result.Result != test.expected_num {

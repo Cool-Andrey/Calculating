@@ -68,22 +68,25 @@ func (c *Client) sendTask(ctx context.Context, stream grpc.BidiStreamingClient[p
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			task, ok := <-c.Results
-			if !ok {
-				return nil
+			select {
+			case task, ok := <-c.Results:
+				if !ok {
+					return nil
+				}
+				err := stream.Send(&pb.TaskWithResult{
+					ID:        task.Id,
+					Operation: task.Operation,
+					Arg1:      task.Arg1,
+					Arg2:      task.Arg2,
+					Result:    task.Result,
+				})
+				if err != nil {
+					c.logger.Errorf("Ошибка отправки задачи: %v", err)
+					return err
+				}
+				c.logger.Debugf("Отправил задачу: %+v", task)
+			default:
 			}
-			err := stream.Send(&pb.TaskWithResult{
-				ID:        task.Id,
-				Operation: task.Operation,
-				Arg1:      task.Arg1,
-				Arg2:      task.Arg2,
-				Result:    task.Result,
-			})
-			if err != nil {
-				c.logger.Errorf("Ошибка отправки задачи: %v", err)
-				return err
-			}
-			c.logger.Debugf("Отправил задачу: %+v", task)
 		}
 	}
 }
