@@ -1,7 +1,7 @@
 package safeStructures
 
 import (
-	"github.com/Cool-Andrey/Calculating/internal/models"
+	"github.com/Cool-Andrey/Calculating/internal/orchestrator/models"
 	"sync"
 )
 

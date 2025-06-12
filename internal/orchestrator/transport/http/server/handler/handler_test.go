@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/Cool-Andrey/Calculating/internal/agent/logic"
-	"github.com/Cool-Andrey/Calculating/internal/config"
+	"github.com/Cool-Andrey/Calculating/internal/orchestrator/config"
 	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
 	"github.com/Cool-Andrey/Calculating/pkg/calc"
 	"github.com/Cool-Andrey/Calculating/pkg/calc/safeStructures"
@@ -104,7 +104,7 @@ func TestCalcHandler(t *testing.T) {
 		if res.StatusCode != 201 {
 			t.Errorf("Ожидал код %d получил %d", 201, res.StatusCode)
 		}
-		expectedBody, err := json.Marshal(ResoponseId{ID: id.Id})
+		expectedBody, err := json.Marshal(ResponseID{ID: id.Id})
 		if err != nil {
 			t.Errorf("Ошибка преобразования ожидаемого результата в json: %v", err)
 		}

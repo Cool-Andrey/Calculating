@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Cool-Andrey/Calculating/internal/models"
-	"github.com/Cool-Andrey/Calculating/internal/repository/postgres"
-	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
+	"github.com/Cool-Andrey/Calculating/internal/orchestrator/ast"
+	"github.com/Cool-Andrey/Calculating/internal/orchestrator/models"
+	"github.com/Cool-Andrey/Calculating/internal/orchestrator/repository/postgres"
 	"github.com/Cool-Andrey/Calculating/pkg/calc"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5"
@@ -18,34 +18,7 @@ import (
 	"time"
 )
 
-type Decorator func(http.Handler) http.Handler
-
-type Request struct {
-	Expression string `json:"expression"`
-}
-
-type ResponseWr struct {
-	Expression models.Expressions `json:"expression"`
-}
-
-type ExprWr struct {
-	Expressions []models.Expressions `json:"expressions"`
-}
-
-type ResoponseId struct {
-	ID int `json:"id"`
-}
-
-type ResultBad struct {
-	Err string `json:"error"`
-}
-
-type User struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
-}
-
-func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, o *orchestrator.Orchestrator, rep *postgres.Repository) {
+func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, a *ast.AST, rep *postgres.Repository) {
 	request := new(Request)
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if r.Method != http.MethodPost {
@@ -57,19 +30,17 @@ func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogg
 	if err != nil && err != io.EOF {
 		w.WriteHeader(422)
 		logger.Errorf("Ошибка чтения json: %v", err)
-		errj := calc.ErrInvalidJson
-		res := ResultBad{Err: errj.Error()}
+		res := ResultBad{Err: calc.ErrInvalidJson.Error()}
 		jsonBytes, _ := json.Marshal(res)
-		fmt.Fprint(w, string(jsonBytes))
+		_, _ = fmt.Fprint(w, string(jsonBytes))
 		time.Sleep(1)
 		return
 	} else if err == io.EOF {
 		w.WriteHeader(422)
-		errj := calc.ErrEmptyJson
-		res := ResultBad{Err: errj.Error()}
+		res := ResultBad{Err: calc.ErrEmptyJson.Error()}
 		logger.Error("Пустой запрос!")
 		jsonBytes, _ := json.Marshal(res)
-		fmt.Fprint(w, string(jsonBytes))
+		_, _ = fmt.Fprint(w, string(jsonBytes))
 		time.Sleep(1)
 		return
 	} else {
@@ -82,15 +53,15 @@ func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogg
 		logger.Errorf("Ошибка записи выражения в СУБД: %v", err)
 		return
 	}
-	resp := ResoponseId{ID: id}
+	resp := ResponseID{ID: id}
 	jsonBytes, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(500)
 	} else {
 		w.WriteHeader(201)
-		fmt.Fprint(w, string(jsonBytes))
+		_, _ = fmt.Fprint(w, string(jsonBytes))
 	}
-	o.Calculate(ctx, request.Expression, id, logger, rep)
+	a.Calc(ctx, request.Expression, id)
 }
 
 func GetExpression(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, rep *postgres.Repository) {
@@ -125,7 +96,7 @@ func GetExpression(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLo
 			logger.Errorf("Ошибка преобразования json: %v", err)
 			return
 		}
-		fmt.Fprint(w, string(jsonBytes))
+		_, _ = fmt.Fprint(w, string(jsonBytes))
 	}
 }
 
@@ -147,7 +118,7 @@ func GetAllExpressions(w http.ResponseWriter, r *http.Request, logger *zap.Sugar
 		w.WriteHeader(500)
 		logger.Errorf("Ошибка преобразования в json: %v", err)
 	} else {
-		fmt.Fprint(w, string(jsonBytes))
+		_, _ = fmt.Fprint(w, string(jsonBytes))
 	}
 }
 
@@ -162,19 +133,17 @@ func Register(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger,
 	if err != nil && err != io.EOF {
 		w.WriteHeader(422)
 		logger.Errorf("Ошибка чтения json: %v", err)
-		errj := calc.ErrInvalidJson
-		res := ResultBad{Err: errj.Error()}
+		res := ResultBad{Err: calc.ErrInvalidJson.Error()}
 		jsonBytes, _ := json.Marshal(res)
-		fmt.Fprint(w, string(jsonBytes))
+		_, _ = fmt.Fprint(w, string(jsonBytes))
 		time.Sleep(1)
 		return
 	} else if err == io.EOF {
 		w.WriteHeader(422)
-		errj := calc.ErrEmptyJson
-		res := ResultBad{Err: errj.Error()}
+		res := ResultBad{Err: calc.ErrEmptyJson.Error()}
 		logger.Error("Пустой запрос!")
 		jsonBytes, _ := json.Marshal(res)
-		fmt.Fprint(w, string(jsonBytes))
+		_, _ = fmt.Fprint(w, string(jsonBytes))
 		time.Sleep(1)
 		return
 	}
@@ -199,19 +168,17 @@ func Login(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, re
 	if err != nil && err != io.EOF {
 		w.WriteHeader(422)
 		logger.Errorf("Ошибка чтения json: %v", err)
-		errj := calc.ErrInvalidJson
-		res := ResultBad{Err: errj.Error()}
+		res := ResultBad{Err: calc.ErrInvalidJson.Error()}
 		jsonBytes, _ := json.Marshal(res)
-		fmt.Fprint(w, string(jsonBytes))
+		_, _ = fmt.Fprint(w, string(jsonBytes))
 		time.Sleep(1)
 		return
 	} else if err == io.EOF {
 		w.WriteHeader(422)
-		errj := calc.ErrEmptyJson
-		res := ResultBad{Err: errj.Error()}
+		res := ResultBad{Err: calc.ErrEmptyJson.Error()}
 		logger.Error("Пустой запрос!")
 		jsonBytes, _ := json.Marshal(res)
-		fmt.Fprint(w, string(jsonBytes))
+		_, _ = fmt.Fprint(w, string(jsonBytes))
 		time.Sleep(1)
 		return
 	}

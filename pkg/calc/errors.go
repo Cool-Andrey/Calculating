@@ -12,10 +12,5 @@ var (
 	ErrExpJWTToken     = errors.New("Токен протух")
 	ErrInvalidJWTToken = errors.New("Невалидный токен")
 
-	ErrorMap = map[error]int{
-		ErrInvalidBracket:  422,
-		ErrInvalidOperands: 422,
-		ErrDivByZero:       422,
-		ErrEmptyExpression: 422,
-	}
+	Errors = []error{ErrDivByZero, ErrInvalidBracket, ErrInvalidOperands, ErrInvalidJson, ErrEmptyJson, ErrEmptyExpression, ErrExpJWTToken, ErrInvalidJWTToken}
 )

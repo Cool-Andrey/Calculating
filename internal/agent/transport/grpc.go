@@ -2,7 +2,7 @@ package transport
 
 import (
 	"context"
-	"github.com/Cool-Andrey/Calculating/internal/models"
+	"github.com/Cool-Andrey/Calculating/internal/orchestrator/models"
 	pb "github.com/Cool-Andrey/Calculating/pkg/api/proto"
 	"github.com/google/uuid"
 	"go.uber.org/zap"

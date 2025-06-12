@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/Cool-Andrey/Calculating/internal/agent/logic"
 	"github.com/Cool-Andrey/Calculating/internal/agent/transport"
-	"github.com/Cool-Andrey/Calculating/internal/config"
+	config2 "github.com/Cool-Andrey/Calculating/internal/orchestrator/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
@@ -16,8 +16,8 @@ import (
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	conf := config.ConfigFromEnv(true)
-	logger := config.SetupLogger(conf.Mode)
+	conf := config2.ConfigFromEnv(true)
+	logger := config2.SetupLogger(conf.Mode)
 	cred := grpc.WithTransportCredentials(insecure.NewCredentials())
 	addr := fmt.Sprintf("%s:%d", conf.GRPC.Host, conf.GRPC.Port)
 	logger.Debugf("Запускаю стрим на адрес: %s", addr)

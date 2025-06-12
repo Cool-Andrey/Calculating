@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/Cool-Andrey/Calculating/internal/application"
+	"github.com/Cool-Andrey/Calculating/internal/orchestrator/application"
 	"os"
 )
 

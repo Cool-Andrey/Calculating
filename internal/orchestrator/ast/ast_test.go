@@ -1,4 +1,4 @@
-package logic
+package ast
 
 import (
 	"github.com/Cool-Andrey/Calculating/internal/agent/logic"
