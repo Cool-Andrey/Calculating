@@ -2,9 +2,9 @@ package server
 
 import (
 	"context"
-	"github.com/Cool-Andrey/Calculating/internal/http/server/handler"
 	"github.com/Cool-Andrey/Calculating/internal/repository/postgres"
 	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
+	"github.com/Cool-Andrey/Calculating/internal/transport/http/server/handler"
 	"go.uber.org/zap"
 	"net/http"
 	"time"

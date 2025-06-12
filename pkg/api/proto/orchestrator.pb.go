@@ -23,7 +23,7 @@ const (
 
 type Task struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ID            int64                  `protobuf:"varint,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	ID            string                 `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
 	Operation     string                 `protobuf:"bytes,2,opt,name=Operation,proto3" json:"Operation,omitempty"`
 	Arg1          float64                `protobuf:"fixed64,3,opt,name=Arg1,proto3" json:"Arg1,omitempty"`
 	Arg2          float64                `protobuf:"fixed64,4,opt,name=Arg2,proto3" json:"Arg2,omitempty"`
@@ -62,11 +62,11 @@ func (*Task) Descriptor() ([]byte, []int) {
 	return file_api_proto_orchestrator_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Task) GetID() int64 {
+func (x *Task) GetID() string {
 	if x != nil {
 		return x.ID
 	}
-	return 0
+	return ""
 }
 
 func (x *Task) GetOperation() string {
@@ -99,7 +99,7 @@ func (x *Task) GetOperationTime() int64 {
 
 type TaskWithResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ID            int64                  `protobuf:"varint,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	ID            string                 `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
 	Operation     string                 `protobuf:"bytes,2,opt,name=Operation,proto3" json:"Operation,omitempty"`
 	Arg1          float64                `protobuf:"fixed64,3,opt,name=Arg1,proto3" json:"Arg1,omitempty"`
 	Arg2          float64                `protobuf:"fixed64,4,opt,name=Arg2,proto3" json:"Arg2,omitempty"`
@@ -139,11 +139,11 @@ func (*TaskWithResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_orchestrator_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *TaskWithResult) GetID() int64 {
+func (x *TaskWithResult) GetID() string {
 	if x != nil {
 		return x.ID
 	}
-	return 0
+	return ""
 }
 
 func (x *TaskWithResult) GetOperation() string {
@@ -187,13 +187,13 @@ const file_api_proto_orchestrator_proto_rawDesc = "" +
 	"\n" +
 	"\x1capi/proto/orchestrator.proto\"\x82\x01\n" +
 	"\x04Task\x12\x0e\n" +
-	"\x02ID\x18\x01 \x01(\x03R\x02ID\x12\x1c\n" +
+	"\x02ID\x18\x01 \x01(\tR\x02ID\x12\x1c\n" +
 	"\tOperation\x18\x02 \x01(\tR\tOperation\x12\x12\n" +
 	"\x04Arg1\x18\x03 \x01(\x01R\x04Arg1\x12\x12\n" +
 	"\x04Arg2\x18\x04 \x01(\x01R\x04Arg2\x12$\n" +
 	"\rOperationTime\x18\x05 \x01(\x03R\rOperationTime\"\xa4\x01\n" +
 	"\x0eTaskWithResult\x12\x0e\n" +
-	"\x02ID\x18\x01 \x01(\x03R\x02ID\x12\x1c\n" +
+	"\x02ID\x18\x01 \x01(\tR\x02ID\x12\x1c\n" +
 	"\tOperation\x18\x02 \x01(\tR\tOperation\x12\x12\n" +
 	"\x04Arg1\x18\x03 \x01(\x01R\x04Arg1\x12\x12\n" +
 	"\x04Arg2\x18\x04 \x01(\x01R\x04Arg2\x12\x16\n" +

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/Cool-Andrey/Calculating/internal/models"
 	pb "github.com/Cool-Andrey/Calculating/pkg/api/proto"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"io"
@@ -20,11 +21,11 @@ type Client struct {
 	Port    int
 }
 
-func NewAgent(cntGoroutins int, logger *zap.SugaredLogger, ping time.Duration, port int, client *grpc.ClientConn) *Client {
+func NewAgent(cntGoroutines int, logger *zap.SugaredLogger, ping time.Duration, port int, client *grpc.ClientConn) *Client {
 	return &Client{
 		client:  pb.NewOrchestratorClient(client),
-		In:      make(chan models.Task, cntGoroutins),
-		Results: make(chan models.Task, cntGoroutins),
+		In:      make(chan models.Task, cntGoroutines),
+		Results: make(chan models.Task, cntGoroutines),
 		logger:  logger,
 		Ping:    ping,
 		Port:    port,
@@ -48,8 +49,13 @@ func (c *Client) getTask(ctx context.Context, stream grpc.BidiStreamingClient[pb
 				return err
 			}
 			c.logger.Debugf("Получил задачу: %+v", msg)
+			id, err := uuid.Parse(msg.ID)
+			if err != nil {
+				c.logger.Errorf("Ошибка преобразования string в uuid: %v", err)
+				return err
+			}
 			c.In <- models.Task{
-				Id:            msg.ID,
+				ID:            id,
 				Operation:     msg.Operation,
 				Arg1:          msg.Arg1,
 				Arg2:          msg.Arg2,
@@ -74,7 +80,7 @@ func (c *Client) sendTask(ctx context.Context, stream grpc.BidiStreamingClient[p
 					return nil
 				}
 				err := stream.Send(&pb.TaskWithResult{
-					ID:        task.Id,
+					ID:        task.ID.String(),
 					Operation: task.Operation,
 					Arg1:      task.Arg1,
 					Arg2:      task.Arg2,

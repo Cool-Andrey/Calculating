@@ -7,7 +7,7 @@ service Orchestrator {
 }
 
 message Task {
-  int64 ID = 1;
+  string ID = 1;
   string Operation = 2;
   double Arg1 = 3;
   double Arg2 = 4;
@@ -15,7 +15,7 @@ message Task {
 }
 
 message TaskWithResult {
-  int64 ID = 1;
+  string ID = 1;
   string Operation = 2;
   double Arg1 = 3;
   double Arg2 = 4;

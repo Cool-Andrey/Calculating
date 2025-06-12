@@ -24,12 +24,12 @@ func LoggingMiddleware(logger *zap.SugaredLogger) func(http.Handler) http.Handle
 			start := time.Now()
 			next.ServeHTTP(w, r)
 			duration := time.Since(start)
-			if r.Method == http.MethodGet && r.URL.Path != "/internal/task" {
+			if len(bodyBytes) == 0 {
 				logger.Infow("HTTP запрос", zap.String("Метод", r.Method),
 					zap.String("Путь", r.URL.String()),
 					zap.Duration("Время выполнения", duration),
 				)
-			} else if r.URL.Path != "/internal/task" && r.Method == http.MethodGet {
+			} else {
 				logger.Infow("HTTP запрос", zap.String("Метод", r.Method),
 					zap.String("Путь", r.URL.String()),
 					zap.String("Тело", string(bodyBytes)),

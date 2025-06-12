@@ -3,10 +3,10 @@ package application
 import (
 	"context"
 	"github.com/Cool-Andrey/Calculating/internal/config"
-	"github.com/Cool-Andrey/Calculating/internal/grpc"
-	"github.com/Cool-Andrey/Calculating/internal/http/server"
 	"github.com/Cool-Andrey/Calculating/internal/repository/postgres"
 	"github.com/Cool-Andrey/Calculating/internal/service/orchestrator"
+	"github.com/Cool-Andrey/Calculating/internal/transport/grpc"
+	"github.com/Cool-Andrey/Calculating/internal/transport/http/server"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -43,10 +43,9 @@ func (a *Application) Run(ctx context.Context) int {
 		logger.Fatalf("Ошибка наката миграции: %v", err)
 	}
 	r := postgres.NewRepository(pool)
-	g := grpc.NewServer(logger, a.config, o.Out, o.In, r)
+	g := grpc.NewServer(logger, a.config, r)
 	go g.Run()
 	logger.Info("Запуск gRPC сервера")
-	o.Recover(ctx, r, logger)
 	shutdownFunc := server.Run(logger, a.config.Addr, o, r, a.config.JWTSecret)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
@@ -56,7 +55,6 @@ func (a *Application) Run(ctx context.Context) int {
 		logger.Errorf("Ошибка при закрытии сервера: %v", err)
 		return 1
 	}
-	o.Shutdown()
 	logger.Info("Сервер закрыт.")
 	return 0
 }

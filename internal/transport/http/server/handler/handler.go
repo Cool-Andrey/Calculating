@@ -91,7 +91,6 @@ func CalcHandler(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogg
 		fmt.Fprint(w, string(jsonBytes))
 	}
 	o.Calculate(ctx, request.Expression, id, logger, rep)
-	time.Sleep(1) // Если знаете, как без этого исправить тот факт, что time.duration() в server.go возвращает 0, буду рад! Сам промучался, так и не найдя решение. Буду премного благодарен за совет!
 }
 
 func GetExpression(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger, rep *postgres.Repository) {

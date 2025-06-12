@@ -3,11 +3,14 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/Cool-Andrey/Calculating/internal/models"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 	"strconv"
+	"strings"
 )
 
 type Repository struct {
@@ -21,12 +24,12 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 func (r *Repository) Get(ctx context.Context, key int) (models.Expressions, error) {
 	res := models.Expressions{}
 	q := `SELECT id, status, COALESCE(result, '') FROM expressions WHERE id = $1`
-	err := r.pool.QueryRow(ctx, q, key).Scan(&res.Id, &res.Status, &res.Result)
+	err := r.pool.QueryRow(ctx, q, key).Scan(&res.ID, &res.Status, &res.Result)
 	return res, err
 }
 
 func (r *Repository) Set(ctx context.Context, value models.Expressions) (int64, error) {
-	if value.Result == "" {
+	if value.Result == nil {
 		q := `INSERT INTO expressions(status) VALUES($1) RETURNING id`
 		var id int
 		err := r.pool.QueryRow(ctx, q, value.Status).Scan(&id)
@@ -35,15 +38,15 @@ func (r *Repository) Set(ctx context.Context, value models.Expressions) (int64, 
 		}
 		return int64(id), nil
 	} else {
-		q := `UPDATE expressions SET status = $2, result = $3 WHERE id = $1`
-		_, err := r.pool.Exec(ctx, q, value.Id, value.Status, value.Result)
-		return value.Id, err
+		q := `UPDATE expressions SET status = $2, result = $3, main_task_id=NULL WHERE id = $1`
+		_, err := r.pool.Exec(ctx, q, value.ID, value.Status, value.Result)
+		return value.ID, err
 	}
 }
 
 func (r *Repository) GetAll(ctx context.Context) ([]models.Expressions, error) {
 	var res []models.Expressions
-	q := `SELECT id, status, result FROM expressions ORDER BY id`
+	q := `SELECT id, status, COALESCE(result, '') FROM expressions ORDER BY id`
 	rows, err := r.pool.Query(ctx, q)
 	if err != nil {
 		return []models.Expressions{}, err
@@ -51,7 +54,7 @@ func (r *Repository) GetAll(ctx context.Context) ([]models.Expressions, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var e models.Expressions
-		err = rows.Scan(&e.Id, &e.Status, &e.Result)
+		err = rows.Scan(&e.ID, &e.Status, &e.Result)
 		if err != nil {
 			return []models.Expressions{}, err
 		}
@@ -68,30 +71,6 @@ func (r *Repository) SetWithExpression(ctx context.Context, value models.Express
 		return 0, err
 	}
 	return id, nil
-}
-
-func (r *Repository) UpdateAST(ctx context.Context, id int, ast []byte) error {
-	q := `UPDATE expressions SET ast_data = $1 WHERE id = $2`
-	_, err := r.pool.Exec(ctx, q, ast, id)
-	return err
-}
-
-func (r *Repository) GetProcTasks(ctx context.Context) ([]models.Expression, error) {
-	q := `SELECT id, expression, ast_data FROM expressions WHERE status='Подсчёт'`
-	rows, err := r.pool.Query(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var expressions []models.Expression
-	for rows.Next() {
-		var expression models.Expression
-		if err := rows.Scan(&expression.ID, &expression.Expression, &expression.ASTData); err != nil {
-			return nil, err
-		}
-		expressions = append(expressions, expression)
-	}
-	return expressions, nil
 }
 
 func (r *Repository) GetStatus(ctx context.Context, id int64) (string, error) {
@@ -124,19 +103,65 @@ func (r *Repository) VerifyUser(ctx context.Context, login, password string) (bo
 	return err == nil, nil
 }
 
-func (r *Repository) SaveTask(ctx context.Context, task *models.Task) (int, error) {
-	q := `INSERT INTO tasks(operation, arg1, arg2, left_id, right_id, ready) VALUES($1, $2, $3, $4, $5, FALSE) RETURNING id`
-	var id int
-	err := r.pool.QueryRow(ctx, q, task.Operation, task.Arg1, task.Arg2, task.LeftID, task.RightID).Scan(&id)
-	return id, err
+func createRequest(tasks []*models.Task, id int) (string, []any) {
+	q := &strings.Builder{}
+	q.WriteString("INSERT INTO tasks(id, expression_id, operation, arg1, arg2, left_id, right_id) VALUES")
+	const requiredFields = 7
+	args := make([]any, 0, len(tasks)*requiredFields)
+	listLen := len(tasks)
+	for i, task := range tasks {
+		args = append(args, task.ID, id, task.Operation, task.Arg1, task.Arg2, task.LeftID, task.RightID)
+		base := i * requiredFields
+		fmt.Fprintf(q, "($%d,$%d,$%d,$%d,$%d, $%d, $%d)", base+1, base+2, base+3, base+4, base+5, base+6, base+7)
+		if i < listLen-1 {
+			fmt.Fprint(q, ", ")
+		}
+	}
+	return q.String(), args
+}
+
+func (r *Repository) SaveTasks(ctx context.Context, tasks []*models.Task, id int) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	q, args := createRequest(tasks, id)
+	_, err = tx.Exec(ctx, q, args...)
+	if err != nil {
+		return err
+	}
+	q = "UPDATE expressions SET main_task_id=$1 WHERE id = $2"
+	_, err = tx.Exec(ctx, q, tasks[len(tasks)-1].ID, id)
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *Repository) UpdateTask(ctx context.Context, task *models.Task) error {
-	q := `UPDATE tasks SET ready = TRUE, result = $1 WHERE id = $2;
-		  UPDATE expressions SET status = 'Выполнено', result = $3 WHERE main_task_id = $4;`
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
 	resStr := strconv.FormatFloat(task.Result, 'f', 2, 64)
-	_, err := r.pool.Exec(ctx, q, task.Result, task.Id)
-	return err
+	q := `UPDATE expressions SET status = 'Выполнено', result = $2 WHERE main_task_id = $1`
+	_, err = tx.Exec(ctx, q, task.ID, resStr)
+	if err != nil {
+		return err
+	}
+	q = `UPDATE tasks SET arg1 = $2 WHERE left_id = $1`
+	_, err = tx.Exec(ctx, q, task.ID, task.Result)
+	if err != nil {
+		return err
+	}
+	q = `UPDATE tasks SET arg2 = $2 WHERE right_id = $1`
+	_, err = tx.Exec(ctx, q, task.ID, task.Result)
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *Repository) GetStatusTask(ctx context.Context, id int64) (bool, error) {
@@ -146,7 +171,14 @@ func (r *Repository) GetStatusTask(ctx context.Context, id int64) (bool, error) 
 	return ready, err
 }
 
-func (r *Repository) RemoveTask(ctx context.Context, id int) error {
+func (r *Repository) GetTask(ctx context.Context) (models.Task, error) {
+	q := `SELECT id, expression_id, operation, arg1, arg2 FROM tasks WHERE left_id IS NULL AND right_id IS NULL`
+	var task models.Task
+	err := r.pool.QueryRow(ctx, q).Scan(&task.ID, &task.ExpressionID, &task.Operation, &task.Arg1, &task.Arg2)
+	return task, err
+}
+
+func (r *Repository) RemoveTask(ctx context.Context, id uuid.UUID) error {
 	q := `DELETE FROM tasks WHERE id = $1`
 	_, err := r.pool.Exec(ctx, q, id)
 	return err

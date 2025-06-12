@@ -8,6 +8,8 @@ import (
 	"github.com/Cool-Andrey/Calculating/internal/models"
 	"github.com/Cool-Andrey/Calculating/internal/repository/postgres"
 	pb "github.com/Cool-Andrey/Calculating/pkg/api/proto"
+	"github.com/Cool-Andrey/Calculating/pkg/calc"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -23,20 +25,16 @@ type Server struct {
 	logger *zap.SugaredLogger
 	cfg    config.GRPCConfig
 	delay  config.Delay
-	get    <-chan models.Task
-	insert chan<- float64
 	r      *postgres.Repository
 }
 
-func NewServer(logger *zap.SugaredLogger, cfg *config.Config, get <-chan models.Task, insert chan<- float64, r *postgres.Repository) *Server {
+func NewServer(logger *zap.SugaredLogger, cfg *config.Config, r *postgres.Repository) *Server {
 	grpcSrv := grpc.NewServer()
 	srv := &Server{
 		server: grpcSrv,
 		logger: logger,
 		cfg:    cfg.GRPC,
 		delay:  cfg.Delay,
-		get:    get,
-		insert: insert,
 		r:      r,
 	}
 	pb.RegisterOrchestratorServer(grpcSrv, srv)
@@ -64,10 +62,25 @@ func (s *Server) sendTask(ctx context.Context, stream grpc.BidiStreamingServer[p
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			task := <-s.get
+			task, err := s.r.GetTask(ctx)
+			if errors.Is(err, pgx.ErrNoRows) {
+				continue
+			}
+			if err != nil {
+				s.logger.Errorf("Ошибка получения из СУБД задачи: %v", err)
+				return err
+			}
+			if task.Arg2 == 0 && task.Operation == "/" {
+				errEvaluate := calc.ErrDivByZero.Error()
+				_, err = s.r.Set(ctx, models.Expressions{
+					ID:     int64(task.ExpressionID),
+					Status: "Ошибка",
+					Result: &errEvaluate,
+				})
+			}
 			setOperationTime(&task, s.delay)
-			err := stream.Send(&pb.Task{
-				ID:            task.Id,
+			err = stream.Send(&pb.Task{
+				ID:            task.ID.String(),
 				Operation:     task.Operation,
 				Arg1:          task.Arg1,
 				Arg2:          task.Arg2,
@@ -96,26 +109,27 @@ func (s *Server) getTask(ctx context.Context, stream grpc.BidiStreamingServer[pb
 				s.logger.Errorf("Ошибка получения задачи: %v", err)
 				return err
 			}
+			id, err := uuid.Parse(msg.ID)
+			if err != nil {
+				s.logger.Errorf("Ошибка преобразования string в uuid: %v", err)
+				return err
+			}
 			task := &models.Task{
-				Id:        msg.ID,
+				ID:        id,
 				Operation: msg.Operation,
 				Arg1:      msg.Arg1,
 				Arg2:      msg.Arg2,
 				Result:    msg.Result,
 			}
-			status, err := s.r.GetStatus(ctx, task.Id)
+			err = s.r.UpdateTask(ctx, task)
 			if err != nil {
-				if errors.Is(err, pgx.ErrNoRows) {
-					s.logger.Warn("Пришла задача для несуществующего выражения")
-				} else {
-					s.logger.Errorf("Ошибка запроса статуса выражения к СУБД: %v", err)
-					return err
-				}
+				s.logger.Errorf("Ошибка обновления задачи в СУБД: %v", err)
+				return err
 			}
-			if status != "Подсчёт" {
-				s.logger.Warnf("Пришла задача для выполненного выражения ID: %d", task.Id)
+			err = s.r.RemoveTask(ctx, id)
+			if err != nil {
+				s.logger.Errorf("Ошибка удаления задачи в СУБД: %v", err)
 			}
-			s.insert <- task.Result
 		}
 	}
 }
