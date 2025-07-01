@@ -12,6 +12,7 @@
     - [Задержка](#задержка)
     - [Агент](#агент)
     - [СУБД](#субд)
+    - [JWT](#jwt)
 4. [Особенности проекта](#особенности-проекта)
 5. [Как работает проект?(граф)](#как-работает-проект)
 6. [Примеры использования (curl'ы и не только)](#примеры-использования-)
@@ -113,6 +114,10 @@ docker compose up --build --abort-on-container-failure
 
 `DATABASE_NAME`: Имя БД. Обязательно, либо нужен `DATABASE_URL`
 
+## JWT
+
+`JWT_SECRET`: секретный ключ для генерации JWT. Обязателен.
+
 # Особенности проекта
 
 Используется только Postgres.
@@ -150,6 +155,7 @@ graph TD
 ```http request
 POST http://127.0.0.1:8080/api/v1/calculate
 Content-Type: application/json
+Authorization: Bearer ваш_jwt_токен_здесь
 {
     "expression" : "выражение"
 }
@@ -186,6 +192,7 @@ Method Not Allowed
 Правильное выражение
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{
     "expression" : "2+5/11+65897*989+6582+999*222-88245/2.4"
@@ -201,6 +208,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
 Некорректное выражение
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{
     "expression": "2+2+"
@@ -216,6 +224,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
 Некорректный json
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{
     "expression": "2+2"
@@ -243,6 +252,7 @@ Method Not Allowed
 Пустой запрос
 ```shell
 curl --location '' \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data ''
 ```
@@ -258,6 +268,7 @@ curl --location '' \
 
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{}'
 ```
@@ -271,6 +282,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
 Пустое выражение
 ```shell
 curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" \
 --header 'Content-Type: application/json' \
 --data '{
     "expression" : ""
@@ -291,6 +303,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/calculate' \
 Запрос
 ```http request
 GET /api/v1/expressions/{id} HTTP/1.1
+Authorization: Bearer ваш_jwt_токен_здесь
 Host: 127.0.0.1:8080
 ```
 Код ответа `200`
@@ -308,7 +321,8 @@ Host: 127.0.0.1:8080
 Выражение корректно и записано
 
 ```shell
-curl --location 'http://127.0.0.1:8080/api/v1/expressions/1'
+curl --location 'http://127.0.0.1:8080/api/v1/expressions/1' \
+--header "Authorization: Bearer ваш_jwt_токен_здесь"
 ```
 Код ответа `200`
 
@@ -324,7 +338,8 @@ curl --location 'http://127.0.0.1:8080/api/v1/expressions/1'
 Выражение некорректно
 
 ```shell
-curl --location 'http://127.0.0.1:8080/api/v1/expressions/1'
+curl --location 'http://127.0.0.1:8080/api/v1/expressions/1' \
+--header "Authorization: Bearer ваш_jwt_токен_здесь" 
 ```
 
 ```json
@@ -340,6 +355,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/expressions/1'
 
 ```http request
 GET /api/v1/expressions HTTP/1.1
+Authorization: Bearer ваш_jwt_токен_здесь
 Host: 127.0.0.1:8080
 ```
 
@@ -352,7 +368,8 @@ Host: 127.0.0.1:8080
 ### Примеры curl'ов
 
 ```shell
-curl --location 'http://127.0.0.1:8080/api/v1/expressions'
+curl --location 'http://127.0.0.1:8080/api/v1/expressions' \
+--header "Authorization: Bearer ваш_jwt_токен_здесь"
 ```
 
 Код ответа `200`
@@ -369,7 +386,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/expressions'
 Только POST запросы 
 
 ```http request
-POST /api/v1/login HTTP/1.1
+POST /api/v1/register HTTP/1.1
 Host: 127.0.0.1:8080
 Content-Type: application/json
 {
@@ -405,7 +422,7 @@ Method Not Allowed
 ### Примеры curl'ов
 
 ```shell
-curl --location 'http://127.0.0.1:8080/api/v1/login' \
+curl --location 'http://127.0.0.1:8080/api/v1/register' \
 --header 'Content-Type: application/json' \
 --data '{
     "login": "ваш_логин",
